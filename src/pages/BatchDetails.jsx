@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,12 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   ArrowLeft, Package, Loader2, CheckCircle2, XCircle, Wrench,
-  User, Calendar, FileText, Clock
+  User, Calendar, FileText, Clock, Layers, Palette, Ruler
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { format } from "date-fns";
-import BatchProgress from "../components/dashboard/BatchProgress";
 import StageForm from "../components/batch/StageForm";
 import PackagingForm from "../components/batch/PackagingForm";
 
@@ -23,14 +22,22 @@ const stageLabels = {
   cleaning: "Cleaning",
   stamping: "Stamping",
   ironing: "Ironing",
-  packaging: "Packaging",
-  completed: "Completed"
+  packaging: "Packaging"
+};
+
+const stageColors = {
+  counting: "bg-blue-100 text-blue-700 border-blue-200",
+  cleaning: "bg-cyan-100 text-cyan-700 border-cyan-200",
+  stamping: "bg-amber-100 text-amber-700 border-amber-200",
+  ironing: "bg-orange-100 text-orange-700 border-orange-200",
+  packaging: "bg-violet-100 text-violet-700 border-violet-200"
 };
 
 export default function BatchDetails() {
   const urlParams = new URLSearchParams(window.location.search);
   const batchId = urlParams.get("id");
   const queryClient = useQueryClient();
+  const [activeStage, setActiveStage] = useState("counting");
 
   const { data: batch, isLoading: batchLoading } = useQuery({
     queryKey: ["batch", batchId],
@@ -41,7 +48,7 @@ export default function BatchDetails() {
 
   const { data: stageRecords = [], isLoading: recordsLoading } = useQuery({
     queryKey: ["stageRecords", batchId],
-    queryFn: () => base44.entities.StageRecord.filter({ batch_id: batchId }),
+    queryFn: () => base44.entities.StageRecord.filter({ batch_id: batchId }, "-created_date"),
     enabled: !!batchId
   });
 
@@ -61,73 +68,118 @@ export default function BatchDetails() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["stageRecords", batchId] })
   });
 
-  const updateBatchMutation = useMutation({
-    mutationFn: (data) => base44.entities.Batch.update(batchId, data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["batch", batchId] })
-  });
-
   const createSKUMutation = useMutation({
     mutationFn: (data) => base44.entities.PackagingSKU.create(data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["skus", batchId] })
+  });
+
+  const updateBatchMutation = useMutation({
+    mutationFn: (data) => base44.entities.Batch.update(batchId, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["batch", batchId] })
   });
 
   const handleStageSubmit = async (data) => {
     await createRecordMutation.mutateAsync({
       batch_id: batchId,
       batch_number: batch.batch_number,
-      stage: batch.current_stage,
+      stage: activeStage,
       ...data,
       completed_at: new Date().toISOString()
     });
-
-    // Move to next stage
-    const currentIndex = STAGES.indexOf(batch.current_stage);
-    const nextStage = currentIndex < STAGES.length - 1 ? STAGES[currentIndex + 1] : "completed";
-    
-    await updateBatchMutation.mutateAsync({
-      current_stage: nextStage,
-      status: nextStage === "completed" ? "completed" : "in_progress"
-    });
   };
 
-  const handlePackagingSubmit = async (skusData, totalPieces) => {
-    // Create stage record for packaging
-    await createRecordMutation.mutateAsync({
+  const handlePackagingSubmit = async (data) => {
+    await createSKUMutation.mutateAsync({
       batch_id: batchId,
       batch_number: batch.batch_number,
-      stage: "packaging",
-      qc_pass: totalPieces,
-      qc_fail: 0,
-      alteration: 0,
-      completed_by: skusData[0]?.packed_by || "",
-      completed_by_name: skusData[0]?.packed_by_name || "",
-      completed_at: new Date().toISOString()
-    });
-
-    // Create SKU records
-    for (const sku of skusData) {
-      await createSKUMutation.mutateAsync({
-        batch_id: batchId,
-        batch_number: batch.batch_number,
-        ...sku
-      });
-    }
-
-    // Complete batch
-    await updateBatchMutation.mutateAsync({
-      current_stage: "completed",
-      status: "completed"
+      ...data
     });
   };
 
-  // Calculate available pieces for current stage
-  const getAvailablePieces = () => {
-    const currentStageIndex = STAGES.indexOf(batch?.current_stage);
-    if (currentStageIndex === 0) return batch?.total_pieces || 0;
+  // Calculate stock by product for each stage
+  const calculateStockByStage = (stage) => {
+    const stageIndex = STAGES.indexOf(stage);
+    const prevStage = stageIndex > 0 ? STAGES[stageIndex - 1] : null;
+    
+    const stock = {};
+    
+    if (!prevStage) {
+      // For counting, we don't have previous stage data
+      return stock;
+    }
 
-    const prevStage = STAGES[currentStageIndex - 1];
-    const prevRecord = stageRecords.find(r => r.stage === prevStage);
-    return prevRecord?.qc_pass || 0;
+    // Get passed pieces from previous stage
+    const prevRecords = stageRecords.filter(r => r.stage === prevStage);
+    prevRecords.forEach(r => {
+      const key = `${r.series_id}-${r.color_id}-${r.size_id}`;
+      stock[key] = (stock[key] || 0) + (r.qc_pass || 0);
+    });
+
+    // Subtract what's already processed in current stage
+    const currentRecords = stageRecords.filter(r => r.stage === stage);
+    currentRecords.forEach(r => {
+      const key = `${r.series_id}-${r.color_id}-${r.size_id}`;
+      const total = (r.qc_pass || 0) + (r.qc_fail || 0) + (r.alteration || 0);
+      stock[key] = (stock[key] || 0) - total;
+    });
+
+    return stock;
+  };
+
+  // Calculate available for packaging (after ironing)
+  const calculatePackagingStock = () => {
+    const stock = {};
+    
+    // Get passed from ironing
+    const ironingRecords = stageRecords.filter(r => r.stage === "ironing");
+    ironingRecords.forEach(r => {
+      const key = `${r.series_id}-${r.color_id}-${r.size_id}`;
+      stock[key] = (stock[key] || 0) + (r.qc_pass || 0);
+    });
+
+    // Subtract already packaged
+    skus.forEach(s => {
+      const key = `${s.series_id}-${s.color_id}-${s.size_id}`;
+      stock[key] = (stock[key] || 0) - (s.total_pieces || 0);
+    });
+
+    return stock;
+  };
+
+  // Calculate totals by product
+  const calculateProductTotals = () => {
+    const totals = {};
+    
+    stageRecords.forEach(r => {
+      const key = `${r.series_name}-${r.color_name}-${r.size_name}`;
+      if (!totals[key]) {
+        totals[key] = {
+          series_name: r.series_name,
+          color_name: r.color_name,
+          size_name: r.size_name,
+          stages: {}
+        };
+      }
+      if (!totals[key].stages[r.stage]) {
+        totals[key].stages[r.stage] = { pass: 0, fail: 0, alteration: 0 };
+      }
+      totals[key].stages[r.stage].pass += r.qc_pass || 0;
+      totals[key].stages[r.stage].fail += r.qc_fail || 0;
+      totals[key].stages[r.stage].alteration += r.alteration || 0;
+    });
+
+    return Object.values(totals);
+  };
+
+  // Get stage summary
+  const getStageSummary = (stage) => {
+    const records = stageRecords.filter(r => r.stage === stage);
+    return {
+      entries: records.length,
+      pass: records.reduce((sum, r) => sum + (r.qc_pass || 0), 0),
+      fail: records.reduce((sum, r) => sum + (r.qc_fail || 0), 0),
+      alteration: records.reduce((sum, r) => sum + (r.alteration || 0), 0)
+    };
   };
 
   if (batchLoading || !batch) {
@@ -138,12 +190,12 @@ export default function BatchDetails() {
     );
   }
 
-  const isCompleted = batch.current_stage === "completed";
-  const availablePieces = getAvailablePieces();
+  const products = batch.expected_products || [];
+  const productTotals = calculateProductTotals();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         <Link to={createPageUrl("Dashboard")}>
           <Button variant="ghost" className="mb-6 text-slate-600">
             <ArrowLeft className="w-4 h-4 mr-2" /> Back to Dashboard
@@ -166,134 +218,239 @@ export default function BatchDetails() {
                       {format(new Date(batch.created_date), "MMM d, yyyy")}
                     </span>
                     <span>•</span>
-                    <span>{batch.total_pieces} pieces</span>
+                    <span>{products.length} product variants</span>
                   </div>
                 </div>
               </div>
-              <Badge 
-                className={`text-sm py-1.5 px-4 ${
-                  isCompleted 
-                    ? "bg-emerald-500" 
-                    : "bg-blue-500"
-                }`}
-              >
-                {isCompleted ? "Completed" : stageLabels[batch.current_stage]}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge className={batch.status === "completed" ? "bg-emerald-500" : "bg-blue-500"}>
+                  {batch.status === "completed" ? "Completed" : "In Progress"}
+                </Badge>
+                {batch.status !== "completed" && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => updateBatchMutation.mutate({ status: "completed" })}
+                  >
+                    Mark Complete
+                  </Button>
+                )}
+              </div>
             </div>
           </CardHeader>
-          <CardContent className="p-6">
-            <BatchProgress currentStage={batch.current_stage} />
+          <CardContent className="p-4">
+            {/* Expected Products */}
+            <div className="flex flex-wrap gap-2">
+              {products.map((p, i) => (
+                <Badge key={i} variant="outline" className="gap-1">
+                  <span className="font-medium">{p.series_name}</span>
+                  <span className="text-slate-400">-</span>
+                  {p.color_name}
+                  <span className="text-slate-400">-</span>
+                  {p.size_name}
+                </Badge>
+              ))}
+            </div>
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Process Form */}
-          <div className="lg:col-span-2">
-            {isCompleted ? (
-              <Card className="border-0 shadow-lg">
-                <CardContent className="p-8 text-center">
-                  <div className="w-20 h-20 rounded-full bg-emerald-100 mx-auto mb-4 flex items-center justify-center">
-                    <CheckCircle2 className="w-10 h-10 text-emerald-600" />
+        {/* Stage Summary Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+          {STAGES.map((stage) => {
+            const summary = getStageSummary(stage);
+            return (
+              <Card 
+                key={stage} 
+                className={`border-0 shadow-sm cursor-pointer transition-all ${
+                  activeStage === stage ? 'ring-2 ring-slate-800' : ''
+                }`}
+                onClick={() => setActiveStage(stage)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <Badge className={stageColors[stage]}>{stageLabels[stage]}</Badge>
+                    <span className="text-xs text-slate-400">{summary.entries} entries</span>
                   </div>
-                  <h2 className="text-2xl font-bold text-slate-800 mb-2">Batch Completed!</h2>
-                  <p className="text-slate-500">All stages have been processed successfully.</p>
+                  <div className="flex gap-3 text-xs">
+                    <span className="text-emerald-600">{summary.pass} ✓</span>
+                    <span className="text-red-600">{summary.fail} ✗</span>
+                    <span className="text-amber-600">{summary.alteration} ⚡</span>
+                  </div>
                 </CardContent>
               </Card>
-            ) : batch.current_stage === "packaging" ? (
+            );
+          })}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Entry Form */}
+          <div className="lg:col-span-2">
+            {activeStage === "packaging" ? (
               <PackagingForm
                 workers={workers}
+                products={products}
+                availableStock={calculatePackagingStock()}
                 onSubmit={handlePackagingSubmit}
-                isLoading={createRecordMutation.isPending || createSKUMutation.isPending}
-                availablePieces={availablePieces}
+                isLoading={createSKUMutation.isPending}
               />
             ) : (
               <StageForm
-                stage={batch.current_stage}
+                stage={activeStage}
                 workers={workers}
+                products={products}
                 onSubmit={handleStageSubmit}
                 isLoading={createRecordMutation.isPending}
-                availablePieces={availablePieces}
               />
             )}
+
+            {/* Stage Records */}
+            <Card className="border-0 shadow-lg mt-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-slate-500" />
+                  {stageLabels[activeStage]} Entries
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {activeStage === "packaging" ? (
+                  skus.length === 0 ? (
+                    <p className="text-slate-400 text-center py-6">No packaging entries yet</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {skus.map((sku) => (
+                        <div key={sku.id} className="p-4 bg-violet-50 rounded-lg">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                <Badge variant="outline">{sku.series_name}</Badge>
+                                <Badge variant="outline">{sku.color_name}</Badge>
+                                <Badge variant="outline">{sku.size_name}</Badge>
+                              </div>
+                              <p className="text-sm text-slate-600 mt-2">
+                                {sku.quantity} × {sku.pack_type?.replace("_", " ")} = {sku.total_pieces} pcs
+                              </p>
+                            </div>
+                            <div className="text-right text-xs text-slate-400">
+                              {sku.packed_by_name && <p>by {sku.packed_by_name}</p>}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                ) : (
+                  stageRecords.filter(r => r.stage === activeStage).length === 0 ? (
+                    <p className="text-slate-400 text-center py-6">No entries yet</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {stageRecords.filter(r => r.stage === activeStage).map((record) => (
+                        <div key={record.id} className="p-4 bg-slate-50 rounded-lg">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <div className="flex items-center gap-2 mb-2">
+                                <Badge variant="outline">{record.series_name}</Badge>
+                                <Badge variant="outline">{record.color_name}</Badge>
+                                <Badge variant="outline">{record.size_name}</Badge>
+                              </div>
+                              <div className="flex gap-4 text-sm">
+                                <span className="text-emerald-600 flex items-center gap-1">
+                                  <CheckCircle2 className="w-3 h-3" /> {record.qc_pass}
+                                </span>
+                                <span className="text-red-600 flex items-center gap-1">
+                                  <XCircle className="w-3 h-3" /> {record.qc_fail}
+                                </span>
+                                <span className="text-amber-600 flex items-center gap-1">
+                                  <Wrench className="w-3 h-3" /> {record.alteration}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="text-right text-xs text-slate-400">
+                              {record.completed_at && (
+                                <p>{format(new Date(record.completed_at), "MMM d, HH:mm")}</p>
+                              )}
+                              {record.completed_by_name && (
+                                <p className="flex items-center gap-1 justify-end mt-1">
+                                  <User className="w-3 h-3" /> {record.completed_by_name}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          {record.notes && (
+                            <p className="text-sm text-slate-500 mt-2 border-t pt-2">{record.notes}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )
+                )}
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Right Column - History */}
+          {/* Right Column - Product Summary */}
           <div className="space-y-6">
-            {/* Stage History */}
+            {/* Product Tracking Summary */}
             <Card className="border-0 shadow-lg">
               <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-slate-500" />
-                  Stage History
+                <CardTitle className="flex items-center gap-2">
+                  <Layers className="w-5 h-5 text-slate-500" />
+                  Production Summary
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {recordsLoading ? (
-                  <Loader2 className="w-6 h-6 animate-spin mx-auto text-slate-400" />
-                ) : stageRecords.length === 0 ? (
-                  <p className="text-slate-400 text-center py-4">No stages completed yet</p>
+                {productTotals.length === 0 ? (
+                  <p className="text-slate-400 text-center py-4">No production data yet</p>
                 ) : (
-                  stageRecords.map((record) => (
-                    <div key={record.id} className="p-4 bg-slate-50 rounded-lg">
-                      <div className="flex justify-between items-start mb-2">
-                        <Badge variant="outline" className="capitalize">
-                          {record.stage}
-                        </Badge>
-                        <span className="text-xs text-slate-400">
-                          {record.completed_at && format(new Date(record.completed_at), "MMM d, HH:mm")}
+                  productTotals.map((product, i) => (
+                    <div key={i} className="p-3 bg-slate-50 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="font-medium text-sm">
+                          {product.series_name} - {product.color_name} - {product.size_name}
                         </span>
                       </div>
-                      <div className="grid grid-cols-3 gap-2 text-sm mt-3">
-                        <div className="flex items-center gap-1 text-emerald-600">
-                          <CheckCircle2 className="w-3 h-3" />
-                          <span>{record.qc_pass} pass</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-red-600">
-                          <XCircle className="w-3 h-3" />
-                          <span>{record.qc_fail} fail</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-amber-600">
-                          <Wrench className="w-3 h-3" />
-                          <span>{record.alteration} alt</span>
-                        </div>
+                      <div className="grid grid-cols-5 gap-1 text-xs">
+                        {STAGES.map(stage => {
+                          const data = product.stages[stage];
+                          return (
+                            <div key={stage} className="text-center">
+                              <p className="text-slate-400 mb-1">{stage.slice(0,3)}</p>
+                              {data ? (
+                                <p className="font-medium text-emerald-600">{data.pass}</p>
+                              ) : (
+                                <p className="text-slate-300">-</p>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
-                      {record.completed_by_name && (
-                        <div className="flex items-center gap-1 mt-2 text-xs text-slate-500">
-                          <User className="w-3 h-3" />
-                          {record.completed_by_name}
-                        </div>
-                      )}
                     </div>
                   ))
                 )}
               </CardContent>
             </Card>
 
-            {/* SKUs Summary */}
+            {/* Packaging Summary */}
             {skus.length > 0 && (
               <Card className="border-0 shadow-lg">
                 <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2">
                     <Package className="w-5 h-5 text-violet-500" />
-                    Packaging SKUs
+                    SKU Summary
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  {skus.map((sku) => (
-                    <div key={sku.id} className="p-3 bg-violet-50 rounded-lg flex justify-between items-center">
-                      <div>
-                        <span className="font-medium capitalize">
-                          {sku.pack_type?.replace("_", " ")}
-                        </span>
-                        <p className="text-xs text-slate-500">
-                          {sku.total_pieces} pieces total
-                        </p>
-                      </div>
-                      <Badge className="bg-violet-600">
-                        ×{sku.quantity}
-                      </Badge>
-                    </div>
-                  ))}
+                <CardContent>
+                  <div className="space-y-2">
+                    {["single", "2_pack", "3_pack", "4_pack", "6_pack", "8_pack"].map(packType => {
+                      const count = skus.filter(s => s.pack_type === packType).reduce((sum, s) => sum + s.quantity, 0);
+                      if (count === 0) return null;
+                      return (
+                        <div key={packType} className="flex justify-between items-center p-2 bg-violet-50 rounded">
+                          <span className="capitalize">{packType.replace("_", " ")}</span>
+                          <Badge className="bg-violet-600">{count} packs</Badge>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -302,7 +459,7 @@ export default function BatchDetails() {
             {batch.notes && (
               <Card className="border-0 shadow-lg">
                 <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2">
                     <FileText className="w-5 h-5 text-slate-500" />
                     Notes
                   </CardTitle>
