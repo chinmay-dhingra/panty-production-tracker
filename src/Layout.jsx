@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { 
-  LayoutDashboard, Package, Users, BarChart3, Menu, X 
+  LayoutDashboard, Package, Users, BarChart3, Menu, X, Settings 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -10,7 +10,8 @@ const navItems = [
   { name: "Dashboard", icon: LayoutDashboard, page: "Dashboard" },
   { name: "New Batch", icon: Package, page: "NewBatch" },
   { name: "Workers", icon: Users, page: "Workers" },
-  { name: "Reports", icon: BarChart3, page: "Reports" }
+  { name: "Reports", icon: BarChart3, page: "Reports" },
+  { name: "Settings", icon: Settings, page: "Settings" }
 ];
 
 export default function Layout({ children, currentPageName }) {

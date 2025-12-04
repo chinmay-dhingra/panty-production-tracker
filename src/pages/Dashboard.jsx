@@ -24,18 +24,28 @@ export default function Dashboard() {
     queryFn: () => base44.entities.StageRecord.list()
   });
 
+  const { data: skus = [] } = useQuery({
+    queryKey: ["skus"],
+    queryFn: () => base44.entities.PackagingSKU.list()
+  });
+
   // Calculate stats
   const totalBatches = batches.length;
   const activeBatches = batches.filter(b => b.status === "in_progress").length;
   const completedBatches = batches.filter(b => b.status === "completed").length;
-  const totalPieces = batches.reduce((sum, b) => sum + (b.total_pieces || 0), 0);
+  
+  // Total pieces from counting stage
+  const countingRecords = stageRecords.filter(r => r.stage === "counting");
+  const totalPieces = countingRecords.reduce((sum, r) => sum + (r.qc_pass || 0) + (r.qc_fail || 0) + (r.alteration || 0), 0);
+  
   const totalQCFail = stageRecords.reduce((sum, r) => sum + (r.qc_fail || 0), 0);
   const totalAlteration = stageRecords.reduce((sum, r) => sum + (r.alteration || 0), 0);
+  const totalPackedUnits = skus.reduce((sum, s) => sum + (s.quantity || 0), 0);
 
   // Filter batches
   const filteredBatches = batches.filter(batch => {
     const matchesSearch = batch.batch_number?.toLowerCase().includes(search.toLowerCase());
-    const matchesFilter = filter === "all" || batch.current_stage === filter || batch.status === filter;
+    const matchesFilter = filter === "all" || batch.status === filter;
     return matchesSearch && matchesFilter;
   });
 
@@ -65,16 +75,16 @@ export default function Dashboard() {
             gradient="bg-gradient-to-br from-slate-700 to-slate-900"
           />
           <StatsCard
-            title="Total Pieces"
+            title="Pieces Counted"
             value={totalPieces.toLocaleString()}
-            subtitle="Across all batches"
+            subtitle="Verified pieces"
             icon={Layers}
             gradient="bg-gradient-to-br from-blue-500 to-blue-700"
           />
           <StatsCard
-            title="Completed"
-            value={completedBatches}
-            subtitle="Batches finished"
+            title="Packed SKUs"
+            value={totalPackedUnits.toLocaleString()}
+            subtitle="Units created"
             icon={CheckCircle}
             gradient="bg-gradient-to-br from-emerald-500 to-emerald-700"
           />
@@ -102,12 +112,8 @@ export default function Dashboard() {
             <TabsList className="bg-white border border-slate-200">
               <TabsTrigger value="all">All</TabsTrigger>
               <TabsTrigger value="in_progress">Active</TabsTrigger>
-              <TabsTrigger value="counting">Counting</TabsTrigger>
-              <TabsTrigger value="cleaning">Cleaning</TabsTrigger>
-              <TabsTrigger value="stamping">Stamping</TabsTrigger>
-              <TabsTrigger value="ironing">Ironing</TabsTrigger>
-              <TabsTrigger value="packaging">Packaging</TabsTrigger>
               <TabsTrigger value="completed">Completed</TabsTrigger>
+              <TabsTrigger value="on_hold">On Hold</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
