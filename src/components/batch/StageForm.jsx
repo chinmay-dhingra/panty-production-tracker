@@ -21,6 +21,7 @@ export default function StageForm({ stage, workers, products, onSubmit, isLoadin
     qc_pass: "",
     qc_fail: "",
     alteration: "",
+    defect_reason: "",
     completed_by: "",
     notes: ""
   });
@@ -46,6 +47,7 @@ export default function StageForm({ stage, workers, products, onSubmit, isLoadin
       qc_pass: parseInt(formData.qc_pass) || 0,
       qc_fail: parseInt(formData.qc_fail) || 0,
       alteration: parseInt(formData.alteration) || 0,
+      defect_reason: formData.defect_reason || null,
       completed_by: formData.completed_by,
       completed_by_name: worker?.name || "",
       notes: formData.notes
@@ -57,6 +59,7 @@ export default function StageForm({ stage, workers, products, onSubmit, isLoadin
       qc_pass: "",
       qc_fail: "",
       alteration: "",
+      defect_reason: "",
       completed_by: "",
       notes: ""
     });
@@ -171,6 +174,32 @@ export default function StageForm({ stage, workers, products, onSubmit, isLoadin
               </SelectContent>
             </Select>
           </div>
+
+          {/* Defect Reason */}
+          {(parseInt(formData.qc_fail) > 0 || parseInt(formData.alteration) > 0) && (
+            <div className="space-y-2">
+              <Label>Defect Reason</Label>
+              <Select
+                value={formData.defect_reason || ""}
+                onValueChange={(value) => setFormData({ ...formData, defect_reason: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select reason" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="stitching_error">Stitching Error</SelectItem>
+                  <SelectItem value="fabric_defect">Fabric Defect</SelectItem>
+                  <SelectItem value="color_issue">Color Issue</SelectItem>
+                  <SelectItem value="size_mismatch">Size Mismatch</SelectItem>
+                  <SelectItem value="stain">Stain/Dirt</SelectItem>
+                  <SelectItem value="tear">Tear/Hole</SelectItem>
+                  <SelectItem value="elastic_issue">Elastic Issue</SelectItem>
+                  <SelectItem value="print_defect">Print Defect</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Notes */}
           <div className="space-y-2">
