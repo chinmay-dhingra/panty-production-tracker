@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle, XCircle, Wrench, Loader2, Layers, Palette, Ruler } from "lucide-react";
+import { CheckCircle, XCircle, Wrench, Loader2, Layers } from "lucide-react";
 
 const stageLabels = {
   counting: "Counting",
@@ -17,9 +17,7 @@ const stageLabels = {
 
 export default function StageForm({ stage, workers, products, onSubmit, isLoading }) {
   const [formData, setFormData] = useState({
-    series_id: "",
-    color_id: "",
-    size_id: "",
+    selected_product: "",
     qc_pass: "",
     qc_fail: "",
     alteration: "",
@@ -27,29 +25,24 @@ export default function StageForm({ stage, workers, products, onSubmit, isLoadin
     notes: ""
   });
 
-  // Get unique values from products
-  const uniqueSeries = [...new Map(products.map(p => [p.series_id, p])).values()];
-  const uniqueColors = [...new Map(products.map(p => [p.color_id, p])).values()];
-  const uniqueSizes = [...new Map(products.map(p => [p.size_id, p])).values()];
-
   const handleSubmit = (e) => {
     e.preventDefault();
     
     const selectedProduct = products.find(p => 
-      p.series_id === formData.series_id &&
-      p.color_id === formData.color_id &&
-      p.size_id === formData.size_id
+      `${p.series_id}-${p.color_id}-${p.size_id}` === formData.selected_product
     );
+
+    if (!selectedProduct) return;
 
     const worker = workers.find(w => w.id === formData.completed_by);
     
     onSubmit({
-      series_id: formData.series_id,
-      series_name: selectedProduct?.series_name || uniqueSeries.find(s => s.series_id === formData.series_id)?.series_name,
-      color_id: formData.color_id,
-      color_name: selectedProduct?.color_name || uniqueColors.find(c => c.color_id === formData.color_id)?.color_name,
-      size_id: formData.size_id,
-      size_name: selectedProduct?.size_name || uniqueSizes.find(s => s.size_id === formData.size_id)?.size_name,
+      series_id: selectedProduct.series_id,
+      series_name: selectedProduct.series_name,
+      color_id: selectedProduct.color_id,
+      color_name: selectedProduct.color_name,
+      size_id: selectedProduct.size_id,
+      size_name: selectedProduct.size_name,
       qc_pass: parseInt(formData.qc_pass) || 0,
       qc_fail: parseInt(formData.qc_fail) || 0,
       alteration: parseInt(formData.alteration) || 0,
@@ -60,9 +53,7 @@ export default function StageForm({ stage, workers, products, onSubmit, isLoadin
 
     // Reset form
     setFormData({
-      series_id: "",
-      color_id: "",
-      size_id: "",
+      selected_product: "",
       qc_pass: "",
       qc_fail: "",
       alteration: "",
@@ -87,70 +78,29 @@ export default function StageForm({ stage, workers, products, onSubmit, isLoadin
       </CardHeader>
       <CardContent className="p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Product Selection */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label className="flex items-center gap-1">
-                <Layers className="w-3 h-3" /> Series
-              </Label>
-              <Select
-                value={formData.series_id}
-                onValueChange={(value) => setFormData({ ...formData, series_id: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select series" />
-                </SelectTrigger>
-                <SelectContent>
-                  {uniqueSeries.map((p) => (
-                    <SelectItem key={p.series_id} value={p.series_id}>
-                      {p.series_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="flex items-center gap-1">
-                <Palette className="w-3 h-3" /> Color
-              </Label>
-              <Select
-                value={formData.color_id}
-                onValueChange={(value) => setFormData({ ...formData, color_id: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select color" />
-                </SelectTrigger>
-                <SelectContent>
-                  {uniqueColors.map((p) => (
-                    <SelectItem key={p.color_id} value={p.color_id}>
-                      {p.color_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="flex items-center gap-1">
-                <Ruler className="w-3 h-3" /> Size
-              </Label>
-              <Select
-                value={formData.size_id}
-                onValueChange={(value) => setFormData({ ...formData, size_id: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select size" />
-                </SelectTrigger>
-                <SelectContent>
-                  {uniqueSizes.map((p) => (
-                    <SelectItem key={p.size_id} value={p.size_id}>
-                      {p.size_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Product Selection - Single dropdown with exact combinations */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1">
+              <Layers className="w-3 h-3" /> Select Product
+            </Label>
+            <Select
+              value={formData.selected_product}
+              onValueChange={(value) => setFormData({ ...formData, selected_product: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select product combination" />
+              </SelectTrigger>
+              <SelectContent>
+                {products.map((p) => (
+                  <SelectItem 
+                    key={`${p.series_id}-${p.color_id}-${p.size_id}`} 
+                    value={`${p.series_id}-${p.color_id}-${p.size_id}`}
+                  >
+                    {p.series_name} - {p.color_name} - {p.size_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* QC Counts */}
@@ -234,7 +184,7 @@ export default function StageForm({ stage, workers, products, onSubmit, isLoadin
 
           <Button
             type="submit"
-            disabled={isLoading || !formData.series_id || !formData.color_id || !formData.size_id || !formData.completed_by || totalPcs === 0}
+            disabled={isLoading || !formData.selected_product || !formData.completed_by || totalPcs === 0}
             className="w-full bg-slate-800 hover:bg-slate-700"
           >
             {isLoading ? (
