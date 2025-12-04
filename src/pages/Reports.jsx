@@ -8,11 +8,12 @@ import {
 } from "recharts";
 import { 
   Loader2, TrendingUp, Package, CheckCircle, XCircle, Wrench, 
-  BarChart3, PieChartIcon
+  BarChart3, PieChart as PieChartIcon, Layers
 } from "lucide-react";
 
 const COLORS = ["#10b981", "#ef4444", "#f59e0b"];
 const PACK_COLORS = ["#8b5cf6", "#6366f1", "#3b82f6", "#06b6d4", "#14b8a6", "#22c55e"];
+const PRODUCT_COLORS = ["#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#3b82f6", "#ef4444", "#06b6d4"];
 
 export default function Reports() {
   const { data: batches = [], isLoading: batchesLoading } = useQuery({
@@ -43,6 +44,30 @@ export default function Reports() {
     };
   });
 
+  // Calculate production by product series
+  const seriesData = {};
+  stageRecords.forEach(r => {
+    if (r.series_name) {
+      if (!seriesData[r.series_name]) {
+        seriesData[r.series_name] = { name: r.series_name, pass: 0, fail: 0, alteration: 0 };
+      }
+      seriesData[r.series_name].pass += r.qc_pass || 0;
+      seriesData[r.series_name].fail += r.qc_fail || 0;
+      seriesData[r.series_name].alteration += r.alteration || 0;
+    }
+  });
+  const seriesStats = Object.values(seriesData);
+
+  // Calculate production by color
+  const colorData = {};
+  stageRecords.filter(r => r.stage === "counting").forEach(r => {
+    if (r.color_name) {
+      const total = (r.qc_pass || 0) + (r.qc_fail || 0) + (r.alteration || 0);
+      colorData[r.color_name] = (colorData[r.color_name] || 0) + total;
+    }
+  });
+  const colorStats = Object.entries(colorData).map(([name, value]) => ({ name, value }));
+
   // Calculate overall QC distribution
   const totalPass = stageRecords.reduce((sum, r) => sum + (r.qc_pass || 0), 0);
   const totalFail = stageRecords.reduce((sum, r) => sum + (r.qc_fail || 0), 0);
@@ -66,7 +91,8 @@ export default function Reports() {
 
   // Summary stats
   const completedBatches = batches.filter(b => b.status === "completed").length;
-  const totalPieces = batches.reduce((sum, b) => sum + (b.total_pieces || 0), 0);
+  const countingRecords = stageRecords.filter(r => r.stage === "counting");
+  const totalPieces = countingRecords.reduce((sum, r) => sum + (r.qc_pass || 0) + (r.qc_fail || 0) + (r.alteration || 0), 0);
   const totalPackedUnits = skus.reduce((sum, s) => sum + (s.quantity || 0), 0);
   const passRate = totalPass + totalFail + totalAlteration > 0
     ? ((totalPass / (totalPass + totalFail + totalAlteration)) * 100).toFixed(1)
@@ -110,9 +136,9 @@ export default function Reports() {
             <CardContent className="p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-500">Total Pieces</p>
+                  <p className="text-sm text-slate-500">Total Counted</p>
                   <p className="text-3xl font-bold text-slate-800 mt-1">{totalPieces.toLocaleString()}</p>
-                  <p className="text-xs text-slate-400 mt-1">All batches</p>
+                  <p className="text-xs text-slate-400 mt-1">Verified pieces</p>
                 </div>
                 <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
                   <TrendingUp className="w-6 h-6 text-blue-600" />
@@ -152,7 +178,7 @@ export default function Reports() {
           </Card>
         </div>
 
-        {/* Charts */}
+        {/* Charts Row 1 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* QC Results by Stage */}
           <Card className="border-0 shadow-lg">
@@ -163,7 +189,7 @@ export default function Reports() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-80">
+              <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={stageStats}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -180,39 +206,31 @@ export default function Reports() {
             </CardContent>
           </Card>
 
-          {/* QC Distribution Pie */}
+          {/* Production by Series */}
           <Card className="border-0 shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <PieChartIcon className="w-5 h-5 text-slate-500" />
-                Overall QC Distribution
+                <Layers className="w-5 h-5 text-slate-500" />
+                Production by Product Series
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-80">
-                {qcDistribution.length > 0 ? (
+              <div className="h-72">
+                {seriesStats.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={qcDistribution}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={100}
-                        paddingAngle={5}
-                        dataKey="value"
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      >
-                        {qcDistribution.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
+                    <BarChart data={seriesStats} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis type="number" tick={{ fontSize: 12 }} />
+                      <YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} width={80} />
                       <Tooltip />
-                    </PieChart>
+                      <Legend />
+                      <Bar dataKey="pass" name="Pass" fill="#10b981" radius={[0, 4, 4, 0]} />
+                      <Bar dataKey="fail" name="Fail" fill="#ef4444" radius={[0, 4, 4, 0]} />
+                    </BarChart>
                   </ResponsiveContainer>
                 ) : (
                   <div className="h-full flex items-center justify-center text-slate-400">
-                    No QC data available yet
+                    No production data yet
                   </div>
                 )}
               </div>
@@ -220,41 +238,83 @@ export default function Reports() {
           </Card>
         </div>
 
-        {/* SKU Distribution */}
-        <Card className="border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Package className="w-5 h-5 text-violet-500" />
-              SKU Pack Distribution
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {skuData.length > 0 ? (
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={skuData} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis type="number" tick={{ fontSize: 12 }} />
-                    <YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} width={80} />
-                    <Tooltip />
-                    <Bar dataKey="value" name="Units" radius={[0, 4, 4, 0]}>
-                      {skuData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={PACK_COLORS[index % PACK_COLORS.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+        {/* Charts Row 2 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Production by Color */}
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <PieChartIcon className="w-5 h-5 text-slate-500" />
+                Production by Color
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-72">
+                {colorStats.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={colorStats}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={90}
+                        paddingAngle={3}
+                        dataKey="value"
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {colorStats.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={PRODUCT_COLORS[index % PRODUCT_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-slate-400">
+                    No color data yet
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="h-64 flex items-center justify-center text-slate-400">
-                No packaging data available yet
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          {/* SKU Pack Distribution */}
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="w-5 h-5 text-violet-500" />
+                SKU Pack Distribution
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {skuData.length > 0 ? (
+                <div className="h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={skuData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                      <YAxis tick={{ fontSize: 12 }} />
+                      <Tooltip />
+                      <Bar dataKey="value" name="Packs" radius={[4, 4, 0, 0]}>
+                        {skuData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={PACK_COLORS[index % PACK_COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="h-72 flex items-center justify-center text-slate-400">
+                  No packaging data yet
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         {/* QC Issues Summary */}
-        <Card className="border-0 shadow-lg mt-6">
+        <Card className="border-0 shadow-lg">
           <CardHeader>
             <CardTitle>QC Issues Summary</CardTitle>
           </CardHeader>
