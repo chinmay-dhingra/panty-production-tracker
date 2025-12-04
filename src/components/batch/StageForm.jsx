@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle, XCircle, Wrench, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle, Wrench, Loader2, Layers, Palette, Ruler } from "lucide-react";
 
 const stageLabels = {
   counting: "Counting",
@@ -15,8 +15,11 @@ const stageLabels = {
   packaging: "Packaging"
 };
 
-export default function StageForm({ stage, workers, onSubmit, isLoading, availablePieces }) {
+export default function StageForm({ stage, workers, products, onSubmit, isLoading }) {
   const [formData, setFormData] = useState({
+    series_id: "",
+    color_id: "",
+    size_id: "",
     qc_pass: "",
     qc_fail: "",
     alteration: "",
@@ -24,26 +27,53 @@ export default function StageForm({ stage, workers, onSubmit, isLoading, availab
     notes: ""
   });
 
+  // Get unique values from products
+  const uniqueSeries = [...new Map(products.map(p => [p.series_id, p])).values()];
+  const uniqueColors = [...new Map(products.map(p => [p.color_id, p])).values()];
+  const uniqueSizes = [...new Map(products.map(p => [p.size_id, p])).values()];
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    const total = (parseInt(formData.qc_pass) || 0) + 
-                  (parseInt(formData.qc_fail) || 0) + 
-                  (parseInt(formData.alteration) || 0);
     
-    if (total > availablePieces) {
-      alert(`Total (${total}) cannot exceed available pieces (${availablePieces})`);
-      return;
-    }
-    
+    const selectedProduct = products.find(p => 
+      p.series_id === formData.series_id &&
+      p.color_id === formData.color_id &&
+      p.size_id === formData.size_id
+    );
+
     const worker = workers.find(w => w.id === formData.completed_by);
+    
     onSubmit({
-      ...formData,
+      series_id: formData.series_id,
+      series_name: selectedProduct?.series_name || uniqueSeries.find(s => s.series_id === formData.series_id)?.series_name,
+      color_id: formData.color_id,
+      color_name: selectedProduct?.color_name || uniqueColors.find(c => c.color_id === formData.color_id)?.color_name,
+      size_id: formData.size_id,
+      size_name: selectedProduct?.size_name || uniqueSizes.find(s => s.size_id === formData.size_id)?.size_name,
       qc_pass: parseInt(formData.qc_pass) || 0,
       qc_fail: parseInt(formData.qc_fail) || 0,
       alteration: parseInt(formData.alteration) || 0,
-      completed_by_name: worker?.name || ""
+      completed_by: formData.completed_by,
+      completed_by_name: worker?.name || "",
+      notes: formData.notes
+    });
+
+    // Reset form
+    setFormData({
+      series_id: "",
+      color_id: "",
+      size_id: "",
+      qc_pass: "",
+      qc_fail: "",
+      alteration: "",
+      completed_by: "",
+      notes: ""
     });
   };
+
+  const totalPcs = (parseInt(formData.qc_pass) || 0) + 
+                   (parseInt(formData.qc_fail) || 0) + 
+                   (parseInt(formData.alteration) || 0);
 
   return (
     <Card className="border-0 shadow-lg">
@@ -52,17 +82,78 @@ export default function StageForm({ stage, workers, onSubmit, isLoading, availab
           <span className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-sm">
             {Object.keys(stageLabels).indexOf(stage) + 1}
           </span>
-          {stageLabels[stage]} Stage
+          Add {stageLabels[stage]} Entry
         </CardTitle>
       </CardHeader>
       <CardContent className="p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <p className="text-sm text-blue-700 font-medium">
-              Available Pieces: <span className="text-xl font-bold">{availablePieces}</span>
-            </p>
+          {/* Product Selection */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1">
+                <Layers className="w-3 h-3" /> Series
+              </Label>
+              <Select
+                value={formData.series_id}
+                onValueChange={(value) => setFormData({ ...formData, series_id: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select series" />
+                </SelectTrigger>
+                <SelectContent>
+                  {uniqueSeries.map((p) => (
+                    <SelectItem key={p.series_id} value={p.series_id}>
+                      {p.series_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1">
+                <Palette className="w-3 h-3" /> Color
+              </Label>
+              <Select
+                value={formData.color_id}
+                onValueChange={(value) => setFormData({ ...formData, color_id: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select color" />
+                </SelectTrigger>
+                <SelectContent>
+                  {uniqueColors.map((p) => (
+                    <SelectItem key={p.color_id} value={p.color_id}>
+                      {p.color_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1">
+                <Ruler className="w-3 h-3" /> Size
+              </Label>
+              <Select
+                value={formData.size_id}
+                onValueChange={(value) => setFormData({ ...formData, size_id: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select size" />
+                </SelectTrigger>
+                <SelectContent>
+                  {uniqueSizes.map((p) => (
+                    <SelectItem key={p.size_id} value={p.size_id}>
+                      {p.size_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
+          {/* QC Counts */}
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label className="flex items-center gap-2 text-emerald-700">
@@ -105,6 +196,13 @@ export default function StageForm({ stage, workers, onSubmit, isLoading, availab
             </div>
           </div>
 
+          {totalPcs > 0 && (
+            <div className="bg-blue-50 p-3 rounded-lg text-center">
+              <span className="text-blue-700 font-medium">Total Pieces: {totalPcs}</span>
+            </div>
+          )}
+
+          {/* Worker */}
           <div className="space-y-2">
             <Label>Completed By</Label>
             <Select
@@ -124,6 +222,7 @@ export default function StageForm({ stage, workers, onSubmit, isLoading, availab
             </Select>
           </div>
 
+          {/* Notes */}
           <div className="space-y-2">
             <Label>Notes (Optional)</Label>
             <Textarea
@@ -135,15 +234,15 @@ export default function StageForm({ stage, workers, onSubmit, isLoading, availab
 
           <Button
             type="submit"
-            disabled={isLoading || !formData.completed_by}
+            disabled={isLoading || !formData.series_id || !formData.color_id || !formData.size_id || !formData.completed_by || totalPcs === 0}
             className="w-full bg-slate-800 hover:bg-slate-700"
           >
             {isLoading ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...
               </>
             ) : (
-              "Complete Stage"
+              "Add Entry"
             )}
           </Button>
         </form>
