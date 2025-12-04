@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -17,8 +18,9 @@ import {
 } from "@/components/ui/dialog";
 import { 
   Users, Plus, Loader2, User, Pencil, Search, 
-  UserCheck, UserX
+  UserCheck, UserX, BarChart3
 } from "lucide-react";
+import WorkerPerformance from "../components/workers/WorkerPerformance";
 
 const DEPARTMENTS = [
   { value: "counting", label: "Counting" },
@@ -40,6 +42,7 @@ export default function Workers() {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingWorker, setEditingWorker] = useState(null);
+  const [activeTab, setActiveTab] = useState("list");
   const [formData, setFormData] = useState({
     name: "",
     employee_id: "",
@@ -52,6 +55,16 @@ export default function Workers() {
   const { data: workers = [], isLoading } = useQuery({
     queryKey: ["workers"],
     queryFn: () => base44.entities.Worker.list("-created_date")
+  });
+
+  const { data: stageRecords = [] } = useQuery({
+    queryKey: ["stageRecords"],
+    queryFn: () => base44.entities.StageRecord.list()
+  });
+
+  const { data: skus = [] } = useQuery({
+    queryKey: ["skus"],
+    queryFn: () => base44.entities.PackagingSKU.list()
   });
 
   const createMutation = useMutation({
@@ -193,120 +206,140 @@ export default function Workers() {
           </Dialog>
         </div>
 
-        {/* Search */}
-        <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <Input
-            placeholder="Search workers..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 bg-white"
-          />
-        </div>
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="bg-white border shadow-sm">
+            <TabsTrigger value="list" className="gap-2">
+              <Users className="w-4 h-4" /> Workers List
+            </TabsTrigger>
+            <TabsTrigger value="performance" className="gap-2">
+              <BarChart3 className="w-4 h-4" /> Performance
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-                <UserCheck className="w-5 h-5 text-emerald-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-slate-800">{activeWorkers.length}</p>
-                <p className="text-sm text-slate-500">Active Workers</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
-                <UserX className="w-5 h-5 text-slate-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-slate-800">{inactiveWorkers.length}</p>
-                <p className="text-sm text-slate-500">Inactive</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+          {/* Workers List Tab */}
+          <TabsContent value="list" className="space-y-6">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input
+                placeholder="Search workers..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10 bg-white"
+              />
+            </div>
 
-        {/* Workers List */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
-          </div>
-        ) : filteredWorkers.length === 0 ? (
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-12 text-center">
-              <Users className="w-16 h-16 mx-auto text-slate-300 mb-4" />
-              <h3 className="text-lg font-medium text-slate-600">No workers found</h3>
-              <p className="text-slate-400 mt-1">Add your first worker to get started</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {filteredWorkers.map((worker) => (
-              <Card 
-                key={worker.id} 
-                className={`border-0 shadow-sm hover:shadow-md transition-shadow ${
-                  worker.is_active === false ? "opacity-60" : ""
-                }`}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                        worker.is_active === false ? "bg-slate-100" : "bg-slate-800"
-                      }`}>
-                        <User className={`w-6 h-6 ${
-                          worker.is_active === false ? "text-slate-400" : "text-white"
-                        }`} />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-slate-800">{worker.name}</h3>
-                        <div className="flex items-center gap-2 mt-1">
-                          {worker.employee_id && (
-                            <span className="text-sm text-slate-500">{worker.employee_id}</span>
-                          )}
-                          {worker.department && (
-                            <Badge className={deptColors[worker.department]}>
-                              {worker.department}
-                            </Badge>
-                          )}
-                          {worker.is_active === false && (
-                            <Badge variant="outline" className="text-slate-400">
-                              Inactive
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleActive(worker)}
-                      >
-                        {worker.is_active === false ? (
-                          <UserCheck className="w-4 h-4 text-emerald-600" />
-                        ) : (
-                          <UserX className="w-4 h-4 text-slate-400" />
-                        )}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEdit(worker)}
-                      >
-                        <Pencil className="w-4 h-4 text-slate-500" />
-                      </Button>
-                    </div>
+            {/* Stats */}
+            <div className="grid grid-cols-2 gap-4">
+              <Card className="border-0 shadow-sm">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+                    <UserCheck className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-slate-800">{activeWorkers.length}</p>
+                    <p className="text-sm text-slate-500">Active Workers</p>
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        )}
+              <Card className="border-0 shadow-sm">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
+                    <UserX className="w-5 h-5 text-slate-500" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-slate-800">{inactiveWorkers.length}</p>
+                    <p className="text-sm text-slate-500">Inactive</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Workers List */}
+            {isLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+              </div>
+            ) : filteredWorkers.length === 0 ? (
+              <Card className="border-0 shadow-sm">
+                <CardContent className="p-12 text-center">
+                  <Users className="w-16 h-16 mx-auto text-slate-300 mb-4" />
+                  <h3 className="text-lg font-medium text-slate-600">No workers found</h3>
+                  <p className="text-slate-400 mt-1">Add your first worker to get started</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {filteredWorkers.map((worker) => (
+                  <Card 
+                    key={worker.id} 
+                    className={`border-0 shadow-sm hover:shadow-md transition-shadow ${
+                      worker.is_active === false ? "opacity-60" : ""
+                    }`}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                            worker.is_active === false ? "bg-slate-100" : "bg-slate-800"
+                          }`}>
+                            <User className={`w-6 h-6 ${
+                              worker.is_active === false ? "text-slate-400" : "text-white"
+                            }`} />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-slate-800">{worker.name}</h3>
+                            <div className="flex items-center gap-2 mt-1">
+                              {worker.employee_id && (
+                                <span className="text-sm text-slate-500">{worker.employee_id}</span>
+                              )}
+                              {worker.department && (
+                                <Badge className={deptColors[worker.department]}>
+                                  {worker.department}
+                                </Badge>
+                              )}
+                              {worker.is_active === false && (
+                                <Badge variant="outline" className="text-slate-400">
+                                  Inactive
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleActive(worker)}
+                          >
+                            {worker.is_active === false ? (
+                              <UserCheck className="w-4 h-4 text-emerald-600" />
+                            ) : (
+                              <UserX className="w-4 h-4 text-slate-400" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEdit(worker)}
+                          >
+                            <Pencil className="w-4 h-4 text-slate-500" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Performance Tab */}
+          <TabsContent value="performance">
+            <WorkerPerformance workers={workers} stageRecords={stageRecords} skus={skus} />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

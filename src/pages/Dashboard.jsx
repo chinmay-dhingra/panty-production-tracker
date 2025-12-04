@@ -1,18 +1,22 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, Layers, CheckCircle, AlertTriangle, Search, Plus, Loader2 } from "lucide-react";
+import { Package, Layers, CheckCircle, AlertTriangle, Search, Plus, Loader2, Archive } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { format } from "date-fns";
 import StatsCard from "../components/dashboard/StatsCard";
-import BatchCard from "../components/batch/BatchCard";
+import BatchCardEnhanced from "../components/batch/BatchCardEnhanced";
 
 export default function Dashboard() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { data: batches = [], isLoading } = useQuery({
     queryKey: ["batches"],
@@ -29,10 +33,36 @@ export default function Dashboard() {
     queryFn: () => base44.entities.PackagingSKU.list()
   });
 
-  // Calculate stats
-  const totalBatches = batches.length;
-  const activeBatches = batches.filter(b => b.status === "in_progress").length;
-  const completedBatches = batches.filter(b => b.status === "completed").length;
+  const archiveMutation = useMutation({
+    mutationFn: (id) => base44.entities.Batch.update(id, { status: "archived" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["batches"] })
+  });
+
+  const duplicateMutation = useMutation({
+    mutationFn: async (batch) => {
+      const today = format(new Date(), "yyyyMMdd");
+      const todayBatches = batches.filter(b => b.batch_number?.startsWith(`BTH-${today}`));
+      const nextNumber = todayBatches.length + 1;
+      const newBatchNumber = `BTH-${today}-${String(nextNumber).padStart(3, "0")}`;
+      
+      return base44.entities.Batch.create({
+        batch_number: newBatchNumber,
+        status: "in_progress",
+        expected_products: batch.expected_products,
+        notes: batch.notes ? `Duplicated from ${batch.batch_number}. ${batch.notes}` : `Duplicated from ${batch.batch_number}`
+      });
+    },
+    onSuccess: (newBatch) => {
+      queryClient.invalidateQueries({ queryKey: ["batches"] });
+      navigate(createPageUrl(`BatchDetails?id=${newBatch.id}`));
+    }
+  });
+
+  // Calculate stats (exclude archived)
+  const activeBatchList = batches.filter(b => b.status !== "archived");
+  const totalBatches = activeBatchList.length;
+  const activeBatches = activeBatchList.filter(b => b.status === "in_progress").length;
+  const completedBatches = activeBatchList.filter(b => b.status === "completed").length;
   
   // Total pieces from counting stage
   const countingRecords = stageRecords.filter(r => r.stage === "counting");
@@ -45,7 +75,9 @@ export default function Dashboard() {
   // Filter batches
   const filteredBatches = batches.filter(batch => {
     const matchesSearch = batch.batch_number?.toLowerCase().includes(search.toLowerCase());
-    const matchesFilter = filter === "all" || batch.status === filter;
+    const matchesFilter = filter === "all" 
+      ? batch.status !== "archived" 
+      : batch.status === filter;
     return matchesSearch && matchesFilter;
   });
 
@@ -114,6 +146,9 @@ export default function Dashboard() {
               <TabsTrigger value="in_progress">Active</TabsTrigger>
               <TabsTrigger value="completed">Completed</TabsTrigger>
               <TabsTrigger value="on_hold">On Hold</TabsTrigger>
+              <TabsTrigger value="archived" className="gap-1">
+                <Archive className="w-3 h-3" /> Archived
+              </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -137,7 +172,13 @@ export default function Dashboard() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredBatches.map((batch) => (
-              <BatchCard key={batch.id} batch={batch} />
+              <BatchCardEnhanced 
+                key={batch.id} 
+                batch={batch} 
+                stageRecords={stageRecords}
+                onArchive={(id) => archiveMutation.mutate(id)}
+                onDuplicate={(b) => duplicateMutation.mutate(b)}
+              />
             ))}
           </div>
         )}
