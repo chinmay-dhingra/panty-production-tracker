@@ -31,7 +31,7 @@ export default function WorkerPerformance({ workers, stageRecords, skus }) {
       id: worker.id,
       name: worker.name,
       employee_id: worker.employee_id,
-      department: worker.department,
+      role: worker.role,
       is_active: worker.is_active,
       totalEntries,
       totalPieces,
@@ -99,8 +99,8 @@ export default function WorkerPerformance({ workers, stageRecords, skus }) {
                     <p className="text-xs text-slate-500">{worker.employee_id || 'No ID'}</p>
                   </div>
                 </div>
-                {worker.department && (
-                  <Badge variant="outline">{worker.department}</Badge>
+                {worker.role && (
+                  <Badge variant="outline">{worker.role}</Badge>
                 )}
               </div>
 

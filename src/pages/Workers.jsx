@@ -22,21 +22,7 @@ import {
 } from "lucide-react";
 import WorkerPerformance from "../components/workers/WorkerPerformance";
 
-const DEPARTMENTS = [
-  { value: "counting", label: "Counting" },
-  { value: "cleaning", label: "Cleaning" },
-  { value: "stamping", label: "Stamping" },
-  { value: "ironing", label: "Ironing" },
-  { value: "packaging", label: "Packaging" }
-];
 
-const deptColors = {
-  counting: "bg-blue-100 text-blue-700",
-  cleaning: "bg-cyan-100 text-cyan-700",
-  stamping: "bg-amber-100 text-amber-700",
-  ironing: "bg-orange-100 text-orange-700",
-  packaging: "bg-violet-100 text-violet-700"
-};
 
 export default function Workers() {
   const [search, setSearch] = useState("");
@@ -46,7 +32,7 @@ export default function Workers() {
   const [formData, setFormData] = useState({
     name: "",
     employee_id: "",
-    department: "",
+    role: "",
     is_active: true
   });
 
@@ -84,7 +70,7 @@ export default function Workers() {
   });
 
   const resetForm = () => {
-    setFormData({ name: "", employee_id: "", department: "", is_active: true });
+    setFormData({ name: "", employee_id: "", role: "", is_active: true });
     setEditingWorker(null);
     setDialogOpen(false);
   };
@@ -103,7 +89,7 @@ export default function Workers() {
     setFormData({
       name: worker.name,
       employee_id: worker.employee_id || "",
-      department: worker.department || "",
+      role: worker.role || "",
       is_active: worker.is_active !== false
     });
     setDialogOpen(true);
@@ -167,22 +153,12 @@ export default function Workers() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Primary Department</Label>
-                  <Select
-                    value={formData.department}
-                    onValueChange={(value) => setFormData({ ...formData, department: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select department" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DEPARTMENTS.map((dept) => (
-                        <SelectItem key={dept.value} value={dept.value}>
-                          {dept.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>Role</Label>
+                  <Input
+                    placeholder="e.g., Production Worker, QC Specialist"
+                    value={formData.role}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                  />
                 </div>
                 <div className="flex items-center justify-between">
                   <Label>Active Status</Label>
@@ -294,9 +270,9 @@ export default function Workers() {
                               {worker.employee_id && (
                                 <span className="text-sm text-slate-500">{worker.employee_id}</span>
                               )}
-                              {worker.department && (
-                                <Badge className={deptColors[worker.department]}>
-                                  {worker.department}
+                              {worker.role && (
+                                <Badge variant="outline" className="text-xs">
+                                  {worker.role}
                                 </Badge>
                               )}
                               {worker.is_active === false && (

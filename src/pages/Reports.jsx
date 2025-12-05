@@ -14,6 +14,7 @@ import {
 import ReportFilters from "../components/reports/ReportFilters";
 import DefectAnalysis from "../components/reports/DefectAnalysis";
 import ThroughputChart from "../components/reports/ThroughputChart";
+import ExportReportPDF from "../components/reports/ExportReportPDF";
 import { isWithinInterval } from "date-fns";
 
 const COLORS = ["#10b981", "#ef4444", "#f59e0b"];
@@ -144,9 +145,12 @@ export default function Reports() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-slate-800">Production Reports</h1>
-          <p className="text-slate-500 mt-1">Analytics and insights for your production</p>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-800">Production Reports</h1>
+            <p className="text-slate-500 mt-1">Analytics and insights for your production</p>
+          </div>
+          <ExportReportPDF stageRecords={filteredRecords} workers={series} />
         </div>
 
         {/* Filters */}

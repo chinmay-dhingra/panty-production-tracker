@@ -7,8 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   ArrowLeft, Package, Loader2, CheckCircle2, XCircle, Wrench,
-  User, Calendar, FileText, Clock, Layers, Palette, Ruler
+  User, Calendar, FileText, Clock, Layers, Palette, Ruler, Copy
 } from "lucide-react";
+import ExportBatchPDF from "../components/batch/ExportBatchPDF";
+import EditStageRecord from "../components/batch/EditStageRecord";
+import BatchStatusControl from "../components/batch/BatchStatusControl";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { format } from "date-fns";
@@ -76,6 +79,16 @@ export default function BatchDetails() {
   const updateBatchMutation = useMutation({
     mutationFn: (data) => base44.entities.Batch.update(batchId, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["batch", batchId] })
+  });
+
+  const updateRecordMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.StageRecord.update(id, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["stageRecords", batchId] })
+  });
+
+  const deleteRecordMutation = useMutation({
+    mutationFn: (id) => base44.entities.StageRecord.delete(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["stageRecords", batchId] })
   });
 
   const handleStageSubmit = async (data) => {
@@ -219,22 +232,20 @@ export default function BatchDetails() {
                     </span>
                     <span>•</span>
                     <span>{products.length} product variants</span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1">
+                      <Copy className="w-3 h-3" />
+                      ID: {batch.id.slice(0, 8)}
+                    </span>
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Badge className={batch.status === "completed" ? "bg-emerald-500" : "bg-blue-500"}>
-                  {batch.status === "completed" ? "Completed" : "In Progress"}
-                </Badge>
-                {batch.status !== "completed" && (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => updateBatchMutation.mutate({ status: "completed" })}
-                  >
-                    Mark Complete
-                  </Button>
-                )}
+              <div className="flex flex-wrap items-center gap-2">
+                <BatchStatusControl 
+                  currentStatus={batch.status} 
+                  onStatusChange={(status) => updateBatchMutation.mutate({ status })}
+                />
+                <ExportBatchPDF batch={batch} stageRecords={stageRecords} skus={skus} />
               </div>
             </div>
           </CardHeader>
@@ -346,11 +357,15 @@ export default function BatchDetails() {
                       {stageRecords.filter(r => r.stage === activeStage).map((record) => (
                         <div key={record.id} className="p-4 bg-slate-50 rounded-lg">
                           <div className="flex justify-between items-start">
-                            <div>
+                            <div className="flex-1">
                               <div className="flex items-center gap-2 mb-2">
                                 <Badge variant="outline">{record.series_name}</Badge>
                                 <Badge variant="outline">{record.color_name}</Badge>
                                 <Badge variant="outline">{record.size_name}</Badge>
+                                <span className="text-xs text-slate-400 flex items-center gap-1">
+                                  <Copy className="w-3 h-3" />
+                                  {record.id.slice(0, 8)}
+                                </span>
                               </div>
                               <div className="flex gap-4 text-sm">
                                 <span className="text-emerald-600 flex items-center gap-1">
@@ -364,15 +379,24 @@ export default function BatchDetails() {
                                 </span>
                               </div>
                             </div>
-                            <div className="text-right text-xs text-slate-400">
-                              {record.completed_at && (
-                                <p>{format(new Date(record.completed_at), "MMM d, HH:mm")}</p>
-                              )}
-                              {record.completed_by_name && (
-                                <p className="flex items-center gap-1 justify-end mt-1">
-                                  <User className="w-3 h-3" /> {record.completed_by_name}
-                                </p>
-                              )}
+                            <div className="flex items-start gap-2">
+                              <div className="text-right text-xs text-slate-400">
+                                {record.completed_at && (
+                                  <p>{format(new Date(record.completed_at), "MMM d, HH:mm")}</p>
+                                )}
+                                {record.completed_by_name && (
+                                  <p className="flex items-center gap-1 justify-end mt-1">
+                                    <User className="w-3 h-3" /> {record.completed_by_name}
+                                  </p>
+                                )}
+                              </div>
+                              <EditStageRecord
+                                record={record}
+                                workers={workers}
+                                onUpdate={(id, data) => updateRecordMutation.mutate({ id, data })}
+                                onDelete={(id) => deleteRecordMutation.mutate(id)}
+                                isLoading={updateRecordMutation.isPending || deleteRecordMutation.isPending}
+                              />
                             </div>
                           </div>
                           {record.notes && (
