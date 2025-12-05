@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { FileDown, Loader2 } from "lucide-react";
 import { useState } from "react";
 import jsPDF from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 
 export default function ExportReportPDF({ stageRecords, workers, title = "Production Report" }) {
   const [exporting, setExporting] = useState(false);
