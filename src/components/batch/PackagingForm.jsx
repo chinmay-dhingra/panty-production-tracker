@@ -24,6 +24,7 @@ export default function PackagingForm({ workers, products, availableStock, onSub
     quantity: "",
     packed_by: ""
   });
+  const [productQuantities, setProductQuantities] = useState({});
   const [skuInput, setSkuInput] = useState("");
   const [recordedSkus, setRecordedSkus] = useState([]);
 
@@ -50,12 +51,20 @@ export default function PackagingForm({ workers, products, availableStock, onSub
         ...formData,
         selected_products: formData.selected_products.filter(p => p !== productKey)
       });
+      const newQuantities = { ...productQuantities };
+      delete newQuantities[productKey];
+      setProductQuantities(newQuantities);
     } else {
       setFormData({
         ...formData,
         selected_products: [...formData.selected_products, productKey]
       });
+      setProductQuantities({ ...productQuantities, [productKey]: "" });
     }
+  };
+
+  const updateProductQuantity = (productKey, quantity) => {
+    setProductQuantities({ ...productQuantities, [productKey]: quantity });
   };
 
   const handleSubmit = (e) => {
@@ -74,7 +83,8 @@ export default function PackagingForm({ workers, products, availableStock, onSub
         `${p.series_id}-${p.color_id}-${p.size_id}` === productKey
       );
 
-      if (selectedProduct) {
+      const productQty = parseInt(productQuantities[productKey]) || 0;
+      if (selectedProduct && productQty > 0) {
         onSubmit({
           series_id: selectedProduct.series_id,
           series_name: selectedProduct.series_name,
@@ -84,7 +94,7 @@ export default function PackagingForm({ workers, products, availableStock, onSub
           size_name: selectedProduct.size_name,
           pack_type: formData.pack_type,
           quantity: parseInt(formData.quantity),
-          total_pieces: totalPieces,
+          total_pieces: productQty,
           packed_by: formData.packed_by,
           packed_by_name: worker?.name || "",
           sku_records: recordedSkus
@@ -98,6 +108,7 @@ export default function PackagingForm({ workers, products, availableStock, onSub
       quantity: "",
       packed_by: ""
     });
+    setProductQuantities({});
     setRecordedSkus([]);
   };
 
@@ -111,24 +122,35 @@ export default function PackagingForm({ workers, products, availableStock, onSub
       </CardHeader>
       <CardContent className="p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Product Selection - Multiple checkboxes */}
+          {/* Product Selection - Multiple checkboxes with quantity */}
           <div className="space-y-2">
             <Label className="flex items-center gap-1">
               <Layers className="w-3 h-3" /> Select Products ({formData.selected_products.length} selected)
             </Label>
-            <div className="border rounded-lg p-3 max-h-48 overflow-y-auto space-y-2">
+            <div className="border rounded-lg p-3 max-h-64 overflow-y-auto space-y-2">
               {products.map((p) => {
                 const productKey = `${p.series_id}-${p.color_id}-${p.size_id}`;
                 const available = availableStock[productKey] || 0;
+                const isSelected = formData.selected_products.includes(productKey);
                 return (
                   <div key={productKey} className="flex items-center gap-2 p-2 hover:bg-slate-50 rounded">
                     <Checkbox
-                      checked={formData.selected_products.includes(productKey)}
+                      checked={isSelected}
                       onCheckedChange={() => toggleProduct(productKey)}
                     />
                     <span className="text-sm flex-1">
                       {p.series_name} - {p.color_name} - {p.size_name}
                     </span>
+                    {isSelected && (
+                      <Input
+                        type="number"
+                        min="1"
+                        placeholder="Qty"
+                        value={productQuantities[productKey] || ""}
+                        onChange={(e) => updateProductQuantity(productKey, e.target.value)}
+                        className="w-20 h-8"
+                      />
+                    )}
                     <Badge variant="outline" className="text-xs">
                       {available} avail
                     </Badge>
