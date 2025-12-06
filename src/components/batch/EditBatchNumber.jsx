@@ -29,7 +29,7 @@ export default function EditBatchNumber({ currentNumber, onUpdate, isLoading }) 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <Button variant="outline" size="sm">
-            <Edit2 className="w-4 h-4 mr-2" /> Edit Number
+            <Edit2 className="w-4 h-4 mr-2" /> Edit Batch Number
           </Button>
         </DialogTrigger>
         <DialogContent>

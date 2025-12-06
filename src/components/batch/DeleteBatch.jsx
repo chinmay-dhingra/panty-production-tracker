@@ -27,10 +27,11 @@ export default function DeleteBatch({ batchNumber, onDelete, isLoading }) {
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogTrigger asChild>
           <Button
-            variant="destructive"
-            size="sm"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
           >
-            <Trash2 className="w-4 h-4 mr-2" /> Delete Batch
+            <Trash2 className="w-4 h-4" />
           </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
