@@ -12,7 +12,9 @@ import {
 import ExportBatchPDF from "../components/batch/ExportBatchPDF";
 import EditStageRecord from "../components/batch/EditStageRecord";
 import BatchStatusControl from "../components/batch/BatchStatusControl";
-import { Link } from "react-router-dom";
+import DeleteBatch from "../components/batch/DeleteBatch";
+import EditBatchNumber from "../components/batch/EditBatchNumber";
+import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { format } from "date-fns";
 import StageForm from "../components/batch/StageForm";
@@ -40,6 +42,7 @@ export default function BatchDetails() {
   const urlParams = new URLSearchParams(window.location.search);
   const batchId = urlParams.get("id");
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [activeStage, setActiveStage] = useState("counting");
 
   const { data: batch, isLoading: batchLoading } = useQuery({
@@ -89,6 +92,24 @@ export default function BatchDetails() {
   const deleteRecordMutation = useMutation({
     mutationFn: (id) => base44.entities.StageRecord.delete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["stageRecords", batchId] })
+  });
+
+  const deleteBatchMutation = useMutation({
+    mutationFn: async () => {
+      // Delete all stage records
+      const recordPromises = stageRecords.map(r => base44.entities.StageRecord.delete(r.id));
+      await Promise.all(recordPromises);
+      
+      // Delete all SKUs
+      const skuPromises = skus.map(s => base44.entities.PackagingSKU.delete(s.id));
+      await Promise.all(skuPromises);
+      
+      // Delete batch
+      await base44.entities.Batch.delete(batchId);
+    },
+    onSuccess: () => {
+      navigate(createPageUrl("Dashboard"));
+    }
   });
 
   const handleStageSubmit = async (data) => {
@@ -241,11 +262,21 @@ export default function BatchDetails() {
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
+                <EditBatchNumber 
+                  currentNumber={batch.batch_number}
+                  onUpdate={(newNumber) => updateBatchMutation.mutate({ batch_number: newNumber })}
+                  isLoading={updateBatchMutation.isPending}
+                />
                 <BatchStatusControl 
                   currentStatus={batch.status} 
                   onStatusChange={(status) => updateBatchMutation.mutate({ status })}
                 />
                 <ExportBatchPDF batch={batch} stageRecords={stageRecords} skus={skus} />
+                <DeleteBatch 
+                  batchNumber={batch.batch_number}
+                  onDelete={() => deleteBatchMutation.mutate()}
+                  isLoading={deleteBatchMutation.isPending}
+                />
               </div>
             </div>
           </CardHeader>

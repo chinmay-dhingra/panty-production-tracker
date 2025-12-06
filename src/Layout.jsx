@@ -9,6 +9,7 @@ import { useState } from "react";
 const navItems = [
   { name: "Dashboard", icon: LayoutDashboard, page: "Dashboard" },
   { name: "New Batch", icon: Package, page: "NewBatch" },
+  { name: "Inventory", icon: Package, page: "Inventory" },
   { name: "Workers", icon: Users, page: "Workers" },
   { name: "Reports", icon: BarChart3, page: "Reports" },
   { name: "Settings", icon: Settings, page: "Settings" }
