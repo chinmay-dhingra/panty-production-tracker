@@ -118,15 +118,18 @@ export default function ExportBatchPDF({ batch, stageRecords, skus }) {
     <Button 
       onClick={exportPDF} 
       disabled={exporting}
-      variant="outline"
+      className="bg-slate-800 hover:bg-slate-700 text-white"
       size="sm"
     >
       {exporting ? (
-        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+        <>
+          <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Exporting...
+        </>
       ) : (
-        <FileDown className="w-4 h-4 mr-2" />
+        <>
+          <FileDown className="w-4 h-4 mr-2" /> Export PDF
+        </>
       )}
-      Export PDF
     </Button>
   );
 }
