@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Package, Loader2, Layers } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Package, Loader2, Layers, X } from "lucide-react";
 
 const PACK_TYPES = [
   { value: "single", label: "Single Pack", pieces: 1 },
@@ -17,58 +19,86 @@ const PACK_TYPES = [
 
 export default function PackagingForm({ workers, products, availableStock, onSubmit, isLoading }) {
   const [formData, setFormData] = useState({
-    selected_product: "",
+    selected_products: [],
     pack_type: "",
     quantity: "",
     packed_by: ""
   });
+  const [skuInput, setSkuInput] = useState("");
+  const [recordedSkus, setRecordedSkus] = useState([]);
 
-  // Calculate available pieces for selected product
-  const getAvailable = () => {
-    if (!formData.selected_product) return 0;
-    return availableStock[formData.selected_product] || 0;
-  };
-
-  const available = getAvailable();
   const packType = PACK_TYPES.find(p => p.value === formData.pack_type);
   const totalPieces = packType ? packType.pieces * (parseInt(formData.quantity) || 0) : 0;
+
+  const handleSkuKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (skuInput.trim()) {
+        setRecordedSkus([...recordedSkus, skuInput.trim()]);
+        setSkuInput("");
+      }
+    }
+  };
+
+  const removeSkuRecord = (index) => {
+    setRecordedSkus(recordedSkus.filter((_, i) => i !== index));
+  };
+
+  const toggleProduct = (productKey) => {
+    if (formData.selected_products.includes(productKey)) {
+      setFormData({
+        ...formData,
+        selected_products: formData.selected_products.filter(p => p !== productKey)
+      });
+    } else {
+      setFormData({
+        ...formData,
+        selected_products: [...formData.selected_products, productKey]
+      });
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (totalPieces > available) {
-      alert(`Not enough pieces available. You have ${available} but need ${totalPieces}`);
+    if (formData.selected_products.length === 0) {
+      alert("Please select at least one product");
       return;
     }
 
-    const selectedProduct = products.find(p => 
-      `${p.series_id}-${p.color_id}-${p.size_id}` === formData.selected_product
-    );
-
-    if (!selectedProduct) return;
-
     const worker = workers.find(w => w.id === formData.packed_by);
 
-    onSubmit({
-      series_id: selectedProduct.series_id,
-      series_name: selectedProduct.series_name,
-      color_id: selectedProduct.color_id,
-      color_name: selectedProduct.color_name,
-      size_id: selectedProduct.size_id,
-      size_name: selectedProduct.size_name,
-      pack_type: formData.pack_type,
-      quantity: parseInt(formData.quantity),
-      total_pieces: totalPieces,
-      packed_by: formData.packed_by,
-      packed_by_name: worker?.name || ""
+    // Create entries for each selected product
+    formData.selected_products.forEach(productKey => {
+      const selectedProduct = products.find(p => 
+        `${p.series_id}-${p.color_id}-${p.size_id}` === productKey
+      );
+
+      if (selectedProduct) {
+        onSubmit({
+          series_id: selectedProduct.series_id,
+          series_name: selectedProduct.series_name,
+          color_id: selectedProduct.color_id,
+          color_name: selectedProduct.color_name,
+          size_id: selectedProduct.size_id,
+          size_name: selectedProduct.size_name,
+          pack_type: formData.pack_type,
+          quantity: parseInt(formData.quantity),
+          total_pieces: totalPieces,
+          packed_by: formData.packed_by,
+          packed_by_name: worker?.name || "",
+          sku_records: recordedSkus
+        });
+      }
     });
 
     setFormData({
-      selected_product: "",
+      selected_products: [],
       pack_type: "",
       quantity: "",
       packed_by: ""
     });
+    setRecordedSkus([]);
   };
 
   return (
@@ -81,39 +111,60 @@ export default function PackagingForm({ workers, products, availableStock, onSub
       </CardHeader>
       <CardContent className="p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Product Selection - Single dropdown with exact combinations */}
+          {/* Product Selection - Multiple checkboxes */}
           <div className="space-y-2">
             <Label className="flex items-center gap-1">
-              <Layers className="w-3 h-3" /> Select Product
+              <Layers className="w-3 h-3" /> Select Products ({formData.selected_products.length} selected)
             </Label>
-            <Select
-              value={formData.selected_product}
-              onValueChange={(value) => setFormData({ ...formData, selected_product: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select product combination" />
-              </SelectTrigger>
-              <SelectContent>
-                {products.map((p) => (
-                  <SelectItem 
-                    key={`${p.series_id}-${p.color_id}-${p.size_id}`} 
-                    value={`${p.series_id}-${p.color_id}-${p.size_id}`}
-                  >
-                    {p.series_name} - {p.color_name} - {p.size_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="border rounded-lg p-3 max-h-48 overflow-y-auto space-y-2">
+              {products.map((p) => {
+                const productKey = `${p.series_id}-${p.color_id}-${p.size_id}`;
+                const available = availableStock[productKey] || 0;
+                return (
+                  <div key={productKey} className="flex items-center gap-2 p-2 hover:bg-slate-50 rounded">
+                    <Checkbox
+                      checked={formData.selected_products.includes(productKey)}
+                      onCheckedChange={() => toggleProduct(productKey)}
+                    />
+                    <span className="text-sm flex-1">
+                      {p.series_name} - {p.color_name} - {p.size_name}
+                    </span>
+                    <Badge variant="outline" className="text-xs">
+                      {available} avail
+                    </Badge>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Available Stock */}
-          {formData.selected_product && (
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <p className="text-sm text-blue-700 font-medium">
-                Available after Ironing: <span className="text-xl font-bold">{available}</span> pieces
-              </p>
-            </div>
-          )}
+          {/* SKU Recording */}
+          <div className="space-y-2">
+            <Label>Record SKU Codes</Label>
+            <Input
+              type="text"
+              placeholder="Scan or type SKU, press Enter to record"
+              value={skuInput}
+              onChange={(e) => setSkuInput(e.target.value)}
+              onKeyDown={handleSkuKeyDown}
+            />
+            {recordedSkus.length > 0 && (
+              <div className="flex flex-wrap gap-2 p-3 bg-slate-50 rounded-lg">
+                {recordedSkus.map((sku, index) => (
+                  <Badge key={index} variant="secondary" className="gap-1">
+                    {sku}
+                    <button
+                      type="button"
+                      onClick={() => removeSkuRecord(index)}
+                      className="ml-1 hover:text-red-600"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Pack Type & Quantity */}
           <div className="grid grid-cols-2 gap-4">
@@ -178,7 +229,7 @@ export default function PackagingForm({ workers, products, availableStock, onSub
 
           <Button
             type="submit"
-            disabled={isLoading || !formData.selected_product || !formData.pack_type || !formData.quantity || !formData.packed_by || totalPieces > available}
+            disabled={isLoading || formData.selected_products.length === 0 || !formData.pack_type || !formData.quantity || !formData.packed_by}
             className="w-full bg-violet-600 hover:bg-violet-700"
           >
             {isLoading ? (
