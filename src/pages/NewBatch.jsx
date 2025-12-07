@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Package, Loader2, Sparkles, Plus, X, Layers, Palette, Ruler } from "lucide-react";
+import { ArrowLeft, Package, Loader2, Sparkles, Plus, X, Layers, Palette, Ruler, Scissors, Shirt } from "lucide-react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 
@@ -37,6 +37,16 @@ export default function NewBatch() {
     queryFn: () => base44.entities.ProductSize.filter({ is_active: true })
   });
 
+  const { data: materials = [] } = useQuery({
+    queryKey: ["productMaterials"],
+    queryFn: () => base44.entities.ProductMaterial.filter({ is_active: true })
+  });
+
+  const { data: styles = [] } = useQuery({
+    queryKey: ["productStyles"],
+    queryFn: () => base44.entities.ProductStyle.filter({ is_active: true })
+  });
+
   const generateBatchNumber = () => {
     const today = format(new Date(), "yyyyMMdd");
     const todayBatches = batches.filter(b => b.batch_number?.startsWith(`BTH-${today}`));
@@ -51,6 +61,8 @@ export default function NewBatch() {
   const [selectedSeries, setSelectedSeries] = useState([]);
   const [selectedColors, setSelectedColors] = useState([]);
   const [selectedSizes, setSelectedSizes] = useState([]);
+  const [selectedMaterials, setSelectedMaterials] = useState([]);
+  const [selectedStyles, setSelectedStyles] = useState([]);
 
   const addProducts = () => {
     if (selectedSeries.length === 0 || selectedColors.length === 0 || selectedSizes.length === 0) {
@@ -59,23 +71,38 @@ export default function NewBatch() {
     }
 
     const newProducts = [];
+    const materialsToUse = selectedMaterials.length > 0 ? selectedMaterials : [null];
+    const stylesToUse = selectedStyles.length > 0 ? selectedStyles : [null];
+
     selectedSeries.forEach(ser => {
       selectedColors.forEach(col => {
         selectedSizes.forEach(siz => {
-          const exists = selectedProducts.some(p => 
-            p.series_id === ser.id && p.color_id === col.id && p.size_id === siz.id
-          );
-          if (!exists) {
-            newProducts.push({
-              series_id: ser.id,
-              series_name: ser.name,
-              color_id: col.id,
-              color_name: col.name,
-              color_hex: col.hex_code,
-              size_id: siz.id,
-              size_name: siz.name
+          materialsToUse.forEach(mat => {
+            stylesToUse.forEach(sty => {
+              const exists = selectedProducts.some(p => 
+                p.series_id === ser.id && 
+                p.color_id === col.id && 
+                p.size_id === siz.id &&
+                p.material_id === mat?.id &&
+                p.style_id === sty?.id
+              );
+              if (!exists) {
+                newProducts.push({
+                  series_id: ser.id,
+                  series_name: ser.name,
+                  color_id: col.id,
+                  color_name: col.name,
+                  color_hex: col.hex_code,
+                  size_id: siz.id,
+                  size_name: siz.name,
+                  material_id: mat?.id || "",
+                  material_name: mat?.name || "",
+                  style_id: sty?.id || "",
+                  style_name: sty?.name || ""
+                });
+              }
             });
-          }
+          });
         });
       });
     });
@@ -84,6 +111,8 @@ export default function NewBatch() {
     setSelectedSeries([]);
     setSelectedColors([]);
     setSelectedSizes([]);
+    setSelectedMaterials([]);
+    setSelectedStyles([]);
   };
 
   const removeProduct = (index) => {
@@ -164,11 +193,11 @@ export default function NewBatch() {
                   <Plus className="w-4 h-4" /> Add Products to Batch
                 </h3>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
                   {/* Series Selection */}
                   <div className="space-y-2">
                     <Label className="flex items-center gap-2">
-                      <Layers className="w-4 h-4 text-slate-500" /> Series
+                      <Layers className="w-4 h-4 text-slate-500" /> Series *
                     </Label>
                     <div className="border rounded-lg p-3 max-h-40 overflow-y-auto space-y-2">
                       {series.length === 0 ? (
@@ -190,7 +219,7 @@ export default function NewBatch() {
                   {/* Color Selection */}
                   <div className="space-y-2">
                     <Label className="flex items-center gap-2">
-                      <Palette className="w-4 h-4 text-slate-500" /> Colors
+                      <Palette className="w-4 h-4 text-slate-500" /> Colors *
                     </Label>
                     <div className="border rounded-lg p-3 max-h-40 overflow-y-auto space-y-2">
                       {colors.length === 0 ? (
@@ -218,7 +247,7 @@ export default function NewBatch() {
                   {/* Size Selection */}
                   <div className="space-y-2">
                     <Label className="flex items-center gap-2">
-                      <Ruler className="w-4 h-4 text-slate-500" /> Sizes
+                      <Ruler className="w-4 h-4 text-slate-500" /> Sizes *
                     </Label>
                     <div className="border rounded-lg p-3 max-h-40 overflow-y-auto space-y-2">
                       {sizes.length === 0 ? (
@@ -236,6 +265,50 @@ export default function NewBatch() {
                       )}
                     </div>
                   </div>
+
+                  {/* Material Selection */}
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Scissors className="w-4 h-4 text-slate-500" /> Material
+                    </Label>
+                    <div className="border rounded-lg p-3 max-h-40 overflow-y-auto space-y-2">
+                      {materials.length === 0 ? (
+                        <p className="text-sm text-slate-400">Optional. Add in Settings.</p>
+                      ) : (
+                        materials.map(m => (
+                          <div key={m.id} className="flex items-center gap-2">
+                            <Checkbox
+                              checked={selectedMaterials.some(i => i.id === m.id)}
+                              onCheckedChange={() => toggleSelection(m, selectedMaterials, setSelectedMaterials)}
+                            />
+                            <span className="text-sm">{m.name}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Style Selection */}
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Shirt className="w-4 h-4 text-slate-500" /> Style
+                    </Label>
+                    <div className="border rounded-lg p-3 max-h-40 overflow-y-auto space-y-2">
+                      {styles.length === 0 ? (
+                        <p className="text-sm text-slate-400">Optional. Add in Settings.</p>
+                      ) : (
+                        styles.map(st => (
+                          <div key={st.id} className="flex items-center gap-2">
+                            <Checkbox
+                              checked={selectedStyles.some(i => i.id === st.id)}
+                              onCheckedChange={() => toggleSelection(st, selectedStyles, setSelectedStyles)}
+                            />
+                            <span className="text-sm">{st.name}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <Button 
@@ -246,7 +319,13 @@ export default function NewBatch() {
                   className="w-full"
                 >
                   <Plus className="w-4 h-4 mr-2" /> 
-                  Add Selected Combinations ({selectedSeries.length * selectedColors.length * selectedSizes.length})
+                  Add Selected Combinations ({
+                    selectedSeries.length * 
+                    selectedColors.length * 
+                    selectedSizes.length * 
+                    (selectedMaterials.length || 1) * 
+                    (selectedStyles.length || 1)
+                  })
                 </Button>
               </div>
 
@@ -273,6 +352,8 @@ export default function NewBatch() {
                           )}
                           <span className="text-sm">
                             <strong>{product.series_name}</strong> - {product.color_name} - {product.size_name}
+                            {product.material_name && ` - ${product.material_name}`}
+                            {product.style_name && ` - ${product.style_name}`}
                           </span>
                         </div>
                         <Button 
