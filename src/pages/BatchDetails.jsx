@@ -14,6 +14,7 @@ import EditStageRecord from "../components/batch/EditStageRecord";
 import BatchStatusControl from "../components/batch/BatchStatusControl";
 import DeleteBatch from "../components/batch/DeleteBatch";
 import EditBatchNumber from "../components/batch/EditBatchNumber";
+import MoveToInventory from "../components/batch/MoveToInventory";
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { format } from "date-fns";
@@ -123,14 +124,14 @@ export default function BatchDetails() {
   };
 
   const handlePackagingSubmit = async (data) => {
-    // Create SKU record
+    // Create PackagingSKU record (for production tracking)
     await createSKUMutation.mutateAsync({
       batch_id: batchId,
       batch_number: batch.batch_number,
       ...data
     });
 
-    // Update inventory - add to stock
+    // Update production inventory (Inventory entity - for production reference)
     try {
       const existingInventory = await base44.entities.Inventory.filter({
         series_id: data.series_id,
@@ -141,13 +142,11 @@ export default function BatchDetails() {
       });
 
       if (existingInventory.length > 0) {
-        // Update existing inventory
         const current = existingInventory[0];
         await base44.entities.Inventory.update(current.id, {
           stock_count: (current.stock_count || 0) + data.total_pieces
         });
       } else {
-        // Create new inventory record
         await base44.entities.Inventory.create({
           series_id: data.series_id,
           series_name: data.series_name,
@@ -164,7 +163,7 @@ export default function BatchDetails() {
         });
       }
     } catch (error) {
-      console.error("Failed to update inventory:", error);
+      console.error("Failed to update production inventory:", error);
     }
   };
 
@@ -548,7 +547,7 @@ export default function BatchDetails() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
+                  <div className="space-y-2 mb-4">
                     {["single", "2_pack", "3_pack", "4_pack", "6_pack", "8_pack"].map(packType => {
                       const count = skus.filter(s => s.pack_type === packType).reduce((sum, s) => sum + s.quantity, 0);
                       if (count === 0) return null;
@@ -560,6 +559,16 @@ export default function BatchDetails() {
                       );
                     })}
                   </div>
+                  {batch.status !== "completed" && batch.status !== "archived" && (
+                    <MoveToInventory
+                      batch={batch}
+                      packagingSKUs={skus}
+                      onSuccess={() => {
+                        queryClient.invalidateQueries({ queryKey: ["batch", batchId] });
+                        queryClient.invalidateQueries({ queryKey: ["batches"] });
+                      }}
+                    />
+                  )}
                 </CardContent>
               </Card>
             )}
