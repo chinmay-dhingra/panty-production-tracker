@@ -6,6 +6,11 @@ import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import Inventory from './pages/Inventory';
 import SalesDashboard from './pages/SalesDashboard';
+import SKUManager from './pages/SKUManager';
+import Orders from './pages/Orders';
+import Returns from './pages/Returns';
+import StockAdjustments from './pages/StockAdjustments';
+import Warehouses from './pages/Warehouses';
 import __Layout from './Layout.jsx';
 
 
@@ -18,6 +23,11 @@ export const PAGES = {
     "Settings": Settings,
     "Inventory": Inventory,
     "SalesDashboard": SalesDashboard,
+    "SKUManager": SKUManager,
+    "Orders": Orders,
+    "Returns": Returns,
+    "StockAdjustments": StockAdjustments,
+    "Warehouses": Warehouses,
 }
 
 export const pagesConfig = {
