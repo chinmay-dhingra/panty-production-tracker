@@ -1,22 +1,36 @@
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { 
-  LayoutDashboard, Package, Users, BarChart3, Menu, X, Settings 
+  LayoutDashboard, Package, Users, BarChart3, Menu, X, Settings, ChevronDown 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
-const navItems = [
-  { name: "Dashboard", icon: LayoutDashboard, page: "Dashboard" },
+const productionItems = [
+  { name: "Production Dashboard", icon: LayoutDashboard, page: "Dashboard" },
   { name: "New Batch", icon: Package, page: "NewBatch" },
-  { name: "Inventory", icon: Package, page: "Inventory" },
+  { name: "Production Inventory", icon: Package, page: "Inventory" },
   { name: "Workers", icon: Users, page: "Workers" },
-  { name: "Reports", icon: BarChart3, page: "Reports" },
+  { name: "Production Reports", icon: BarChart3, page: "Reports" }
+];
+
+const salesItems = [
+  { name: "Sales Dashboard", icon: LayoutDashboard, page: "SalesDashboard" },
+  { name: "SKU Manager", icon: Package, page: "SKUManager" },
+  { name: "Orders", icon: Package, page: "Orders" },
+  { name: "Returns", icon: Package, page: "Returns" },
+  { name: "Stock Adjustments", icon: Package, page: "StockAdjustments" },
+  { name: "Warehouses", icon: Package, page: "Warehouses" }
+];
+
+const settingsItems = [
   { name: "Settings", icon: Settings, page: "Settings" }
 ];
 
 export default function Layout({ children, currentPageName }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [productionOpen, setProductionOpen] = useState(true);
+  const [salesOpen, setSalesOpen] = useState(true);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -32,23 +46,82 @@ export default function Layout({ children, currentPageName }) {
           </div>
         </div>
         <nav className="mt-6 px-3">
-          {navItems.map((item) => {
-            const isActive = currentPageName === item.page;
-            return (
-              <Link
-                key={item.page}
-                to={createPageUrl(item.page)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl mb-1 transition-all ${
-                  isActive 
-                    ? "bg-slate-800 text-white" 
-                    : "text-slate-400 hover:bg-slate-800/50 hover:text-white"
-                }`}
-              >
-                <item.icon className="w-5 h-5" />
-                {item.name}
-              </Link>
-            );
-          })}
+          {/* Production Section */}
+          <div className="mb-4">
+            <button
+              onClick={() => setProductionOpen(!productionOpen)}
+              className="flex items-center justify-between w-full px-4 py-2 text-slate-400 hover:text-white text-sm font-semibold uppercase tracking-wider"
+            >
+              <span>Production</span>
+              <ChevronDown className={`w-4 h-4 transition-transform ${productionOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {productionOpen && productionItems.map((item) => {
+              const isActive = currentPageName === item.page;
+              return (
+                <Link
+                  key={item.page}
+                  to={createPageUrl(item.page)}
+                  className={`flex items-center gap-3 px-4 py-2 rounded-xl mb-1 transition-all text-sm ${
+                    isActive 
+                      ? "bg-slate-800 text-white" 
+                      : "text-slate-400 hover:bg-slate-800/50 hover:text-white"
+                  }`}
+                >
+                  <item.icon className="w-4 h-4" />
+                  {item.name}
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Sales & Inventory Section */}
+          <div className="mb-4">
+            <button
+              onClick={() => setSalesOpen(!salesOpen)}
+              className="flex items-center justify-between w-full px-4 py-2 text-slate-400 hover:text-white text-sm font-semibold uppercase tracking-wider"
+            >
+              <span>Sales & Inventory</span>
+              <ChevronDown className={`w-4 h-4 transition-transform ${salesOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {salesOpen && salesItems.map((item) => {
+              const isActive = currentPageName === item.page;
+              return (
+                <Link
+                  key={item.page}
+                  to={createPageUrl(item.page)}
+                  className={`flex items-center gap-3 px-4 py-2 rounded-xl mb-1 transition-all text-sm ${
+                    isActive 
+                      ? "bg-slate-800 text-white" 
+                      : "text-slate-400 hover:bg-slate-800/50 hover:text-white"
+                  }`}
+                >
+                  <item.icon className="w-4 h-4" />
+                  {item.name}
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Settings */}
+          <div className="border-t border-slate-800 pt-4">
+            {settingsItems.map((item) => {
+              const isActive = currentPageName === item.page;
+              return (
+                <Link
+                  key={item.page}
+                  to={createPageUrl(item.page)}
+                  className={`flex items-center gap-3 px-4 py-2 rounded-xl mb-1 transition-all text-sm ${
+                    isActive 
+                      ? "bg-slate-800 text-white" 
+                      : "text-slate-400 hover:bg-slate-800/50 hover:text-white"
+                  }`}
+                >
+                  <item.icon className="w-4 h-4" />
+                  {item.name}
+                </Link>
+              );
+            })}
+          </div>
         </nav>
       </aside>
 
@@ -72,26 +145,70 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Mobile Menu */}
       {mobileOpen && (
-        <div className="lg:hidden fixed inset-0 z-40 bg-slate-900/95 pt-16">
+        <div className="lg:hidden fixed inset-0 z-40 bg-slate-900/95 pt-16 overflow-y-auto">
           <nav className="p-4">
-            {navItems.map((item) => {
-              const isActive = currentPageName === item.page;
-              return (
-                <Link
-                  key={item.page}
-                  to={createPageUrl(item.page)}
-                  onClick={() => setMobileOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-4 rounded-xl mb-2 transition-all ${
-                    isActive 
-                      ? "bg-slate-800 text-white" 
-                      : "text-slate-400 hover:bg-slate-800/50 hover:text-white"
-                  }`}
-                >
-                  <item.icon className="w-5 h-5" />
-                  {item.name}
-                </Link>
-              );
-            })}
+            <div className="mb-4">
+              <p className="text-slate-500 text-xs font-semibold uppercase px-4 mb-2">Production</p>
+              {productionItems.map((item) => {
+                const isActive = currentPageName === item.page;
+                return (
+                  <Link
+                    key={item.page}
+                    to={createPageUrl(item.page)}
+                    onClick={() => setMobileOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl mb-1 transition-all ${
+                      isActive 
+                        ? "bg-slate-800 text-white" 
+                        : "text-slate-400 hover:bg-slate-800/50 hover:text-white"
+                    }`}
+                  >
+                    <item.icon className="w-5 h-5" />
+                    {item.name}
+                  </Link>
+                );
+              })}
+            </div>
+            <div className="mb-4">
+              <p className="text-slate-500 text-xs font-semibold uppercase px-4 mb-2">Sales & Inventory</p>
+              {salesItems.map((item) => {
+                const isActive = currentPageName === item.page;
+                return (
+                  <Link
+                    key={item.page}
+                    to={createPageUrl(item.page)}
+                    onClick={() => setMobileOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl mb-1 transition-all ${
+                      isActive 
+                        ? "bg-slate-800 text-white" 
+                        : "text-slate-400 hover:bg-slate-800/50 hover:text-white"
+                    }`}
+                  >
+                    <item.icon className="w-5 h-5" />
+                    {item.name}
+                  </Link>
+                );
+              })}
+            </div>
+            <div className="border-t border-slate-700 pt-4">
+              {settingsItems.map((item) => {
+                const isActive = currentPageName === item.page;
+                return (
+                  <Link
+                    key={item.page}
+                    to={createPageUrl(item.page)}
+                    onClick={() => setMobileOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl mb-1 transition-all ${
+                      isActive 
+                        ? "bg-slate-800 text-white" 
+                        : "text-slate-400 hover:bg-slate-800/50 hover:text-white"
+                    }`}
+                  >
+                    <item.icon className="w-5 h-5" />
+                    {item.name}
+                  </Link>
+                );
+              })}
+            </div>
           </nav>
         </div>
       )}
