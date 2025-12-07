@@ -30,7 +30,7 @@ export default function StageForm({ stage, workers, products, onSubmit, isLoadin
     e.preventDefault();
     
     const selectedProduct = products.find(p => 
-      `${p.series_id}-${p.color_id}-${p.size_id}` === formData.selected_product
+      `${p.series_id}-${p.color_id}-${p.size_id}-${p.material_id || ''}-${p.style_id || ''}` === formData.selected_product
     );
 
     if (!selectedProduct) return;
@@ -44,6 +44,10 @@ export default function StageForm({ stage, workers, products, onSubmit, isLoadin
       color_name: selectedProduct.color_name,
       size_id: selectedProduct.size_id,
       size_name: selectedProduct.size_name,
+      material_id: selectedProduct.material_id || "",
+      material_name: selectedProduct.material_name || "",
+      style_id: selectedProduct.style_id || "",
+      style_name: selectedProduct.style_name || "",
       qc_pass: parseInt(formData.qc_pass) || 0,
       qc_fail: parseInt(formData.qc_fail) || 0,
       alteration: parseInt(formData.alteration) || 0,
@@ -94,14 +98,19 @@ export default function StageForm({ stage, workers, products, onSubmit, isLoadin
                 <SelectValue placeholder="Select product combination" />
               </SelectTrigger>
               <SelectContent>
-                {products.map((p) => (
-                  <SelectItem 
-                    key={`${p.series_id}-${p.color_id}-${p.size_id}`} 
-                    value={`${p.series_id}-${p.color_id}-${p.size_id}`}
-                  >
-                    {p.series_name} - {p.color_name} - {p.size_name}
-                  </SelectItem>
-                ))}
+                {products.map((p) => {
+                  const key = `${p.series_id}-${p.color_id}-${p.size_id}-${p.material_id || ''}-${p.style_id || ''}`;
+                  return (
+                    <SelectItem 
+                      key={key} 
+                      value={key}
+                    >
+                      {p.series_name} - {p.color_name} - {p.size_name}
+                      {p.material_name && ` - ${p.material_name}`}
+                      {p.style_name && ` - ${p.style_name}`}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
