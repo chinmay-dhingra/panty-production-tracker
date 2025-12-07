@@ -80,7 +80,7 @@ export default function PackagingForm({ workers, products, availableStock, onSub
     // Create entries for each selected product
     for (const productKey of formData.selected_products) {
       const selectedProduct = products.find(p => 
-        `${p.series_id}-${p.color_id}-${p.size_id}` === productKey
+        `${p.series_id}-${p.color_id}-${p.size_id}-${p.material_id || ''}-${p.style_id || ''}` === productKey
       );
 
       const productQty = parseInt(productQuantities[productKey]) || 0;
@@ -92,6 +92,10 @@ export default function PackagingForm({ workers, products, availableStock, onSub
           color_name: selectedProduct.color_name,
           size_id: selectedProduct.size_id,
           size_name: selectedProduct.size_name,
+          material_id: selectedProduct.material_id || "",
+          material_name: selectedProduct.material_name || "",
+          style_id: selectedProduct.style_id || "",
+          style_name: selectedProduct.style_name || "",
           pack_type: formData.pack_type,
           quantity: parseInt(formData.quantity),
           total_pieces: productQty,
@@ -129,7 +133,7 @@ export default function PackagingForm({ workers, products, availableStock, onSub
             </Label>
             <div className="border rounded-lg p-3 max-h-64 overflow-y-auto space-y-2">
               {products.map((p) => {
-                const productKey = `${p.series_id}-${p.color_id}-${p.size_id}`;
+                const productKey = `${p.series_id}-${p.color_id}-${p.size_id}-${p.material_id || ''}-${p.style_id || ''}`;
                 const available = availableStock[productKey] || 0;
                 const isSelected = formData.selected_products.includes(productKey);
                 return (
@@ -140,6 +144,8 @@ export default function PackagingForm({ workers, products, availableStock, onSub
                     />
                     <span className="text-sm flex-1">
                       {p.series_name} - {p.color_name} - {p.size_name}
+                      {p.material_name && ` - ${p.material_name}`}
+                      {p.style_name && ` - ${p.style_name}`}
                     </span>
                     {isSelected && (
                       <Input

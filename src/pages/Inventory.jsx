@@ -51,6 +51,16 @@ export default function Inventory() {
     queryFn: () => base44.entities.ProductSize.filter({ is_active: true })
   });
 
+  const { data: materials = [] } = useQuery({
+    queryKey: ["productMaterials"],
+    queryFn: () => base44.entities.ProductMaterial.filter({ is_active: true })
+  });
+
+  const { data: styles = [] } = useQuery({
+    queryKey: ["productStyles"],
+    queryFn: () => base44.entities.ProductStyle.filter({ is_active: true })
+  });
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Inventory.create(data),
     onSuccess: () => {
@@ -113,6 +123,8 @@ export default function Inventory() {
               series={series}
               colors={colors}
               sizes={sizes}
+              materials={materials}
+              styles={styles}
               onAdd={(data) => createMutation.mutate(data)}
               isLoading={createMutation.isPending}
             />
@@ -189,6 +201,18 @@ export default function Inventory() {
                               <span>{item.color_name}</span>
                               <span className="text-slate-400">-</span>
                               <span>{item.size_name}</span>
+                              {item.material_name && (
+                                <>
+                                  <span className="text-slate-400">-</span>
+                                  <span>{item.material_name}</span>
+                                </>
+                              )}
+                              {item.style_name && (
+                                <>
+                                  <span className="text-slate-400">-</span>
+                                  <span>{item.style_name}</span>
+                                </>
+                              )}
                             </div>
                           </td>
                           <td className="p-3 text-center">
@@ -285,12 +309,14 @@ export default function Inventory() {
   );
 }
 
-function AddInventoryDialog({ series, colors, sizes, onAdd, isLoading }) {
+function AddInventoryDialog({ series, colors, sizes, materials, styles, onAdd, isLoading }) {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     series_id: "",
     color_id: "",
     size_id: "",
+    material_id: "",
+    style_id: "",
     stock_count: "",
     reorder_point: "",
     notes: ""
@@ -302,6 +328,8 @@ function AddInventoryDialog({ series, colors, sizes, onAdd, isLoading }) {
     const selectedSeries = series.find(s => s.id === formData.series_id);
     const selectedColor = colors.find(c => c.id === formData.color_id);
     const selectedSize = sizes.find(s => s.id === formData.size_id);
+    const selectedMaterial = materials.find(m => m.id === formData.material_id);
+    const selectedStyle = styles.find(st => st.id === formData.style_id);
 
     onAdd({
       series_id: formData.series_id,
@@ -310,6 +338,10 @@ function AddInventoryDialog({ series, colors, sizes, onAdd, isLoading }) {
       color_name: selectedColor?.name || "",
       size_id: formData.size_id,
       size_name: selectedSize?.name || "",
+      material_id: formData.material_id || "",
+      material_name: selectedMaterial?.name || "",
+      style_id: formData.style_id || "",
+      style_name: selectedStyle?.name || "",
       stock_count: parseInt(formData.stock_count) || 0,
       reorder_point: parseInt(formData.reorder_point) || 0,
       notes: formData.notes
@@ -319,6 +351,8 @@ function AddInventoryDialog({ series, colors, sizes, onAdd, isLoading }) {
       series_id: "",
       color_id: "",
       size_id: "",
+      material_id: "",
+      style_id: "",
       stock_count: "",
       reorder_point: "",
       notes: ""
@@ -384,6 +418,42 @@ function AddInventoryDialog({ series, colors, sizes, onAdd, isLoading }) {
               <SelectContent>
                 {sizes.map((s) => (
                   <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Material (Optional)</Label>
+            <Select
+              value={formData.material_id}
+              onValueChange={(value) => setFormData({ ...formData, material_id: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select material" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={null}>None</SelectItem>
+                {materials.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Style (Optional)</Label>
+            <Select
+              value={formData.style_id}
+              onValueChange={(value) => setFormData({ ...formData, style_id: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select style" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={null}>None</SelectItem>
+                {styles.map((st) => (
+                  <SelectItem key={st.id} value={st.id}>{st.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

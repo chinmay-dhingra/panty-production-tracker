@@ -131,12 +131,13 @@ export default function BatchDetails() {
     });
 
     // Update inventory - add to stock
-    const inventoryKey = `${data.series_id}-${data.color_id}-${data.size_id}`;
     try {
       const existingInventory = await base44.entities.Inventory.filter({
         series_id: data.series_id,
         color_id: data.color_id,
-        size_id: data.size_id
+        size_id: data.size_id,
+        material_id: data.material_id || "",
+        style_id: data.style_id || ""
       });
 
       if (existingInventory.length > 0) {
@@ -154,6 +155,10 @@ export default function BatchDetails() {
           color_name: data.color_name,
           size_id: data.size_id,
           size_name: data.size_name,
+          material_id: data.material_id || "",
+          material_name: data.material_name || "",
+          style_id: data.style_id || "",
+          style_name: data.style_name || "",
           stock_count: data.total_pieces,
           reorder_point: 0
         });
@@ -178,14 +183,14 @@ export default function BatchDetails() {
     // Get passed pieces from previous stage
     const prevRecords = stageRecords.filter(r => r.stage === prevStage);
     prevRecords.forEach(r => {
-      const key = `${r.series_id}-${r.color_id}-${r.size_id}`;
+      const key = `${r.series_id}-${r.color_id}-${r.size_id}-${r.material_id || ''}-${r.style_id || ''}`;
       stock[key] = (stock[key] || 0) + (r.qc_pass || 0);
     });
 
     // Subtract what's already processed in current stage
     const currentRecords = stageRecords.filter(r => r.stage === stage);
     currentRecords.forEach(r => {
-      const key = `${r.series_id}-${r.color_id}-${r.size_id}`;
+      const key = `${r.series_id}-${r.color_id}-${r.size_id}-${r.material_id || ''}-${r.style_id || ''}`;
       const total = (r.qc_pass || 0) + (r.qc_fail || 0) + (r.alteration || 0);
       stock[key] = (stock[key] || 0) - total;
     });
@@ -200,13 +205,13 @@ export default function BatchDetails() {
     // Get passed from ironing
     const ironingRecords = stageRecords.filter(r => r.stage === "ironing");
     ironingRecords.forEach(r => {
-      const key = `${r.series_id}-${r.color_id}-${r.size_id}`;
+      const key = `${r.series_id}-${r.color_id}-${r.size_id}-${r.material_id || ''}-${r.style_id || ''}`;
       stock[key] = (stock[key] || 0) + (r.qc_pass || 0);
     });
 
     // Subtract already packaged
     skus.forEach(s => {
-      const key = `${s.series_id}-${s.color_id}-${s.size_id}`;
+      const key = `${s.series_id}-${s.color_id}-${s.size_id}-${s.material_id || ''}-${s.style_id || ''}`;
       stock[key] = (stock[key] || 0) - (s.total_pieces || 0);
     });
 
@@ -218,12 +223,14 @@ export default function BatchDetails() {
     const totals = {};
     
     stageRecords.forEach(r => {
-      const key = `${r.series_name}-${r.color_name}-${r.size_name}`;
+      const key = `${r.series_name}-${r.color_name}-${r.size_name}-${r.material_name || ''}-${r.style_name || ''}`;
       if (!totals[key]) {
         totals[key] = {
           series_name: r.series_name,
           color_name: r.color_name,
           size_name: r.size_name,
+          material_name: r.material_name || "",
+          style_name: r.style_name || "",
           stages: {}
         };
       }
@@ -323,6 +330,18 @@ export default function BatchDetails() {
                   {p.color_name}
                   <span className="text-slate-400">-</span>
                   {p.size_name}
+                  {p.material_name && (
+                    <>
+                      <span className="text-slate-400">-</span>
+                      {p.material_name}
+                    </>
+                  )}
+                  {p.style_name && (
+                    <>
+                      <span className="text-slate-400">-</span>
+                      {p.style_name}
+                    </>
+                  )}
                 </Badge>
               ))}
             </div>
@@ -494,6 +513,8 @@ export default function BatchDetails() {
                       <div className="flex items-center gap-2 mb-2">
                         <span className="font-medium text-sm">
                           {product.series_name} - {product.color_name} - {product.size_name}
+                          {product.material_name && ` - ${product.material_name}`}
+                          {product.style_name && ` - ${product.style_name}`}
                         </span>
                       </div>
                       <div className="grid grid-cols-5 gap-1 text-xs">
