@@ -33,6 +33,11 @@ export default function Dashboard() {
     queryFn: () => base44.entities.PackagingSKU.list()
   });
 
+  const { data: inventory = [] } = useQuery({
+    queryKey: ["inventory"],
+    queryFn: () => base44.entities.Inventory.list()
+  });
+
   const archiveMutation = useMutation({
     mutationFn: (id) => base44.entities.Batch.update(id, { status: "archived" }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["batches"] })
@@ -71,6 +76,11 @@ export default function Dashboard() {
   const totalQCFail = stageRecords.reduce((sum, r) => sum + (r.qc_fail || 0), 0);
   const totalAlteration = stageRecords.reduce((sum, r) => sum + (r.alteration || 0), 0);
   const totalPackedUnits = skus.reduce((sum, s) => sum + (s.quantity || 0), 0);
+  
+  // Low stock alerts
+  const lowStockCount = inventory.filter(
+    item => item.reorder_point > 0 && item.stock_count <= item.reorder_point
+  ).length;
 
   // Filter batches
   const filteredBatches = batches.filter(batch => {
@@ -128,6 +138,27 @@ export default function Dashboard() {
             gradient="bg-gradient-to-br from-amber-500 to-orange-600"
           />
         </div>
+
+        {/* Low Stock Alert */}
+        {lowStockCount > 0 && (
+          <Card className="border-amber-200 bg-amber-50 mb-6">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-amber-800">
+                  <AlertTriangle className="w-5 h-5" />
+                  <span className="font-medium">
+                    {lowStockCount} product{lowStockCount > 1 ? 's' : ''} below reorder point
+                  </span>
+                </div>
+                <Link to={createPageUrl("Inventory")}>
+                  <Button variant="outline" size="sm" className="border-amber-300 text-amber-800 hover:bg-amber-100">
+                    View Inventory
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Search and Filters */}
         <div className="flex flex-col md:flex-row gap-4 mb-6">

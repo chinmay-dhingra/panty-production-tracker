@@ -67,7 +67,7 @@ export default function PackagingForm({ workers, products, availableStock, onSub
     setProductQuantities({ ...productQuantities, [productKey]: quantity });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (formData.selected_products.length === 0) {
@@ -78,14 +78,14 @@ export default function PackagingForm({ workers, products, availableStock, onSub
     const worker = workers.find(w => w.id === formData.packed_by);
 
     // Create entries for each selected product
-    formData.selected_products.forEach(productKey => {
+    for (const productKey of formData.selected_products) {
       const selectedProduct = products.find(p => 
         `${p.series_id}-${p.color_id}-${p.size_id}` === productKey
       );
 
       const productQty = parseInt(productQuantities[productKey]) || 0;
       if (selectedProduct && productQty > 0) {
-        onSubmit({
+        await onSubmit({
           series_id: selectedProduct.series_id,
           series_name: selectedProduct.series_name,
           color_id: selectedProduct.color_id,
@@ -100,7 +100,7 @@ export default function PackagingForm({ workers, products, availableStock, onSub
           sku_records: recordedSkus
         });
       }
-    });
+    }
 
     setFormData({
       selected_products: [],

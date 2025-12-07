@@ -123,11 +123,44 @@ export default function BatchDetails() {
   };
 
   const handlePackagingSubmit = async (data) => {
+    // Create SKU record
     await createSKUMutation.mutateAsync({
       batch_id: batchId,
       batch_number: batch.batch_number,
       ...data
     });
+
+    // Update inventory - add to stock
+    const inventoryKey = `${data.series_id}-${data.color_id}-${data.size_id}`;
+    try {
+      const existingInventory = await base44.entities.Inventory.filter({
+        series_id: data.series_id,
+        color_id: data.color_id,
+        size_id: data.size_id
+      });
+
+      if (existingInventory.length > 0) {
+        // Update existing inventory
+        const current = existingInventory[0];
+        await base44.entities.Inventory.update(current.id, {
+          stock_count: (current.stock_count || 0) + data.total_pieces
+        });
+      } else {
+        // Create new inventory record
+        await base44.entities.Inventory.create({
+          series_id: data.series_id,
+          series_name: data.series_name,
+          color_id: data.color_id,
+          color_name: data.color_name,
+          size_id: data.size_id,
+          size_name: data.size_name,
+          stock_count: data.total_pieces,
+          reorder_point: 0
+        });
+      }
+    } catch (error) {
+      console.error("Failed to update inventory:", error);
+    }
   };
 
   // Calculate stock by product for each stage
