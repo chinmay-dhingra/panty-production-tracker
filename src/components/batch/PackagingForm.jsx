@@ -228,9 +228,9 @@ export default function PackagingForm({ workers, products, availableStock, onSub
           </div>
 
           {totalPieces > 0 && (
-            <div className="p-3 rounded-lg text-center bg-emerald-50">
-              <span className="font-medium text-emerald-700">
-                Total Pieces: {totalPieces}
+            <div className={`p-3 rounded-lg text-center ${totalPieces > available ? 'bg-red-50' : 'bg-emerald-50'}`}>
+              <span className={`font-medium ${totalPieces > available ? 'text-red-700' : 'text-emerald-700'}`}>
+                Total Pieces: {totalPieces} {totalPieces > available && '(Exceeds available!)'}
               </span>
             </div>
           )}
