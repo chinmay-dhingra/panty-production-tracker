@@ -27,8 +27,8 @@ export default function Layout({ children, currentPageName }) {
             <Package className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-white font-bold text-lg">PantyTrack</h1>
-            <p className="text-slate-400 text-xs">QC Production</p>
+            <h1 className="text-white font-bold text-lg">SOVIV Production</h1>
+            <p className="text-slate-400 text-xs">Quality Control</p>
           </div>
         </div>
         <nav className="mt-6 px-3">
@@ -58,7 +58,7 @@ export default function Layout({ children, currentPageName }) {
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
             <Package className="w-4 h-4 text-white" />
           </div>
-          <h1 className="text-white font-bold">PantyTrack</h1>
+          <h1 className="text-white font-bold">SOVIV Production</h1>
         </div>
         <Button
           variant="ghost"
