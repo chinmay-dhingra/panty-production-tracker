@@ -143,12 +143,13 @@ export default function EditStageRecord({ record, workers, onUpdate, onDelete, i
           variant="ghost"
           className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
           onClick={() => {
-            if (confirm(`Delete record ${record.id}?`)) {
+            if (window.confirm(`Delete this record? ID: ${record.id.slice(0, 8)}`)) {
               onDelete(record.id);
             }
           }}
+          disabled={isLoading}
         >
-          <Trash2 className="w-3 h-3" />
+          {isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
         </Button>
       </div>
     </AdminOnly>
