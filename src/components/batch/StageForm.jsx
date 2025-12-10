@@ -5,7 +5,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle, XCircle, Wrench, Loader2, Layers } from "lucide-react";
+import { CheckCircle, XCircle, Wrench, Loader2, Layers, Eye } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 
 const stageLabels = {
   counting: "Counting",
@@ -16,6 +26,7 @@ const stageLabels = {
 };
 
 export default function StageForm({ stage, workers, products, onSubmit, isLoading }) {
+  const [showConfirm, setShowConfirm] = useState(false);
   const [formData, setFormData] = useState({
     selected_product: "",
     qc_pass: "",
@@ -28,7 +39,10 @@ export default function StageForm({ stage, workers, products, onSubmit, isLoadin
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+    setShowConfirm(true);
+  };
+
+  const confirmSubmit = () => {
     const selectedProduct = products.find(p => 
       `${p.series_id}-${p.color_id}-${p.size_id}-${p.material_id || ''}-${p.style_id || ''}` === formData.selected_product
     );
@@ -67,6 +81,20 @@ export default function StageForm({ stage, workers, products, onSubmit, isLoadin
       completed_by: "",
       notes: ""
     });
+    setShowConfirm(false);
+  };
+
+  const getProductDisplay = () => {
+    const product = products.find(p => 
+      `${p.series_id}-${p.color_id}-${p.size_id}-${p.material_id || ''}-${p.style_id || ''}` === formData.selected_product
+    );
+    if (!product) return "";
+    return `${product.series_name} - ${product.color_name} - ${product.size_name}${product.material_name ? ` - ${product.material_name}` : ''}${product.style_name ? ` - ${product.style_name}` : ''}`;
+  };
+
+  const getWorkerDisplay = () => {
+    const worker = workers.find(w => w.id === formData.completed_by);
+    return worker ? worker.name : "";
   };
 
   const totalPcs = (parseInt(formData.qc_pass) || 0) + 
@@ -225,15 +253,72 @@ export default function StageForm({ stage, workers, products, onSubmit, isLoadin
             disabled={isLoading || !formData.selected_product || !formData.completed_by || totalPcs === 0}
             className="w-full bg-slate-800 hover:bg-slate-700"
           >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...
-              </>
-            ) : (
-              "Add Entry"
-            )}
+            <Eye className="w-4 h-4 mr-2" /> Preview & Confirm
           </Button>
         </form>
+
+        <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm {stageLabels[stage]} Entry</AlertDialogTitle>
+              <AlertDialogDescription>
+                Please review the entry details before submitting.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="space-y-3 py-4">
+              <div className="bg-slate-50 p-3 rounded-lg">
+                <p className="text-sm text-slate-500 mb-1">Product</p>
+                <p className="font-medium">{getProductDisplay()}</p>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-emerald-50 p-3 rounded-lg">
+                  <p className="text-xs text-emerald-700 mb-1">QC Pass</p>
+                  <p className="text-xl font-bold text-emerald-700">{formData.qc_pass || 0}</p>
+                </div>
+                <div className="bg-red-50 p-3 rounded-lg">
+                  <p className="text-xs text-red-700 mb-1">QC Fail</p>
+                  <p className="text-xl font-bold text-red-700">{formData.qc_fail || 0}</p>
+                </div>
+                <div className="bg-amber-50 p-3 rounded-lg">
+                  <p className="text-xs text-amber-700 mb-1">Alteration</p>
+                  <p className="text-xl font-bold text-amber-700">{formData.alteration || 0}</p>
+                </div>
+              </div>
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <p className="text-xs text-blue-700 mb-1">Total Pieces</p>
+                <p className="text-lg font-bold text-blue-700">{totalPcs}</p>
+              </div>
+              <div className="bg-slate-50 p-3 rounded-lg">
+                <p className="text-sm text-slate-500 mb-1">Completed By</p>
+                <p className="font-medium">{getWorkerDisplay()}</p>
+              </div>
+              {formData.defect_reason && (
+                <div className="bg-slate-50 p-3 rounded-lg">
+                  <p className="text-sm text-slate-500 mb-1">Defect Reason</p>
+                  <p className="font-medium">{formData.defect_reason.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                </div>
+              )}
+              {formData.notes && (
+                <div className="bg-slate-50 p-3 rounded-lg">
+                  <p className="text-sm text-slate-500 mb-1">Notes</p>
+                  <p className="text-sm">{formData.notes}</p>
+                </div>
+              )}
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmSubmit} disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting...
+                  </>
+                ) : (
+                  "Confirm & Submit"
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   );

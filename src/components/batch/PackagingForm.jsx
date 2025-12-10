@@ -6,7 +6,17 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Package, Loader2, Layers, X } from "lucide-react";
+import { Package, Loader2, Layers, X, Eye } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 
 const PACK_TYPES = [
   { value: "single", label: "Single Pack", pieces: 1 },
@@ -18,6 +28,7 @@ const PACK_TYPES = [
 ];
 
 export default function PackagingForm({ workers, products, availableStock, onSubmit, isLoading }) {
+  const [showConfirm, setShowConfirm] = useState(false);
   const [formData, setFormData] = useState({
     selected_products: [],
     pack_type: "",
@@ -75,6 +86,10 @@ export default function PackagingForm({ workers, products, availableStock, onSub
       return;
     }
 
+    setShowConfirm(true);
+  };
+
+  const confirmSubmit = async () => {
     const worker = workers.find(w => w.id === formData.packed_by);
 
     // Create entries for each selected product
@@ -114,6 +129,30 @@ export default function PackagingForm({ workers, products, availableStock, onSub
     });
     setProductQuantities({});
     setRecordedSkus([]);
+    setShowConfirm(false);
+  };
+
+  const getPackTypeLabel = () => {
+    const pack = PACK_TYPES.find(p => p.value === formData.pack_type);
+    return pack ? pack.label : "";
+  };
+
+  const getWorkerDisplay = () => {
+    const worker = workers.find(w => w.id === formData.packed_by);
+    return worker ? worker.name : "";
+  };
+
+  const getSelectedProductsDisplay = () => {
+    return formData.selected_products.map(productKey => {
+      const product = products.find(p => 
+        `${p.series_id}-${p.color_id}-${p.size_id}-${p.material_id || ''}-${p.style_id || ''}` === productKey
+      );
+      const qty = productQuantities[productKey] || 0;
+      return {
+        name: product ? `${product.series_name} - ${product.color_name} - ${product.size_name}${product.material_name ? ` - ${product.material_name}` : ''}${product.style_name ? ` - ${product.style_name}` : ''}` : "",
+        qty
+      };
+    });
   };
 
   return (
@@ -260,15 +299,67 @@ export default function PackagingForm({ workers, products, availableStock, onSub
             disabled={isLoading || formData.selected_products.length === 0 || !formData.pack_type || !formData.quantity || !formData.packed_by}
             className="w-full bg-violet-600 hover:bg-violet-700"
           >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...
-              </>
-            ) : (
-              "Add Packaging Entry"
-            )}
+            <Eye className="w-4 h-4 mr-2" /> Preview & Confirm
           </Button>
         </form>
+
+        <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
+          <AlertDialogContent className="max-w-2xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Packaging Entry</AlertDialogTitle>
+              <AlertDialogDescription>
+                Please review the packaging details before submitting.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="space-y-3 py-4 max-h-96 overflow-y-auto">
+              <div className="bg-violet-50 p-3 rounded-lg">
+                <p className="text-sm text-violet-700 mb-1">Pack Type</p>
+                <p className="font-medium text-violet-900">{getPackTypeLabel()}</p>
+              </div>
+              <div className="bg-violet-50 p-3 rounded-lg">
+                <p className="text-sm text-violet-700 mb-1">Number of Packs</p>
+                <p className="font-medium text-violet-900">{formData.quantity}</p>
+              </div>
+              <div className="bg-slate-50 p-3 rounded-lg">
+                <p className="text-sm text-slate-500 mb-1">Packed By</p>
+                <p className="font-medium">{getWorkerDisplay()}</p>
+              </div>
+              <div className="bg-slate-50 p-3 rounded-lg">
+                <p className="text-sm text-slate-500 mb-2">Selected Products ({formData.selected_products.length})</p>
+                <div className="space-y-2">
+                  {getSelectedProductsDisplay().map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-center text-sm">
+                      <span>{item.name}</span>
+                      <Badge variant="secondary">{item.qty} pcs</Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {recordedSkus.length > 0 && (
+                <div className="bg-slate-50 p-3 rounded-lg">
+                  <p className="text-sm text-slate-500 mb-2">SKU Codes ({recordedSkus.length})</p>
+                  <div className="flex flex-wrap gap-2">
+                    {recordedSkus.map((sku, idx) => (
+                      <Badge key={idx} variant="outline">{sku}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmSubmit} disabled={isLoading} className="bg-violet-600 hover:bg-violet-700">
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting...
+                  </>
+                ) : (
+                  "Confirm & Submit"
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   );
