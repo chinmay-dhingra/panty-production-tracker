@@ -33,28 +33,20 @@ export default function PackagingForm({ workers, products, availableStock, onSub
     selected_products: [],
     pack_type: "",
     quantity: "",
-    packed_by: ""
+    packed_by: "",
+    sku_code: "",
+    sku_product: ""
   });
   const [productQuantities, setProductQuantities] = useState({});
-  const [skuInput, setSkuInput] = useState("");
-  const [recordedSkus, setRecordedSkus] = useState([]);
 
   const packType = PACK_TYPES.find(p => p.value === formData.pack_type);
-  const totalPieces = packType ? packType.pieces * (parseInt(formData.quantity) || 0) : 0;
+  const requiredPieces = packType ? packType.pieces * (parseInt(formData.quantity) || 0) : 0;
+  
+  const totalSelectedPieces = formData.selected_products.reduce((sum, productKey) => {
+    return sum + (parseInt(productQuantities[productKey]) || 0);
+  }, 0);
 
-  const handleSkuKeyDown = (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      if (skuInput.trim()) {
-        setRecordedSkus([...recordedSkus, skuInput.trim()]);
-        setSkuInput("");
-      }
-    }
-  };
-
-  const removeSkuRecord = (index) => {
-    setRecordedSkus(recordedSkus.filter((_, i) => i !== index));
-  };
+  const piecesMismatch = requiredPieces > 0 && totalSelectedPieces !== requiredPieces;
 
   const toggleProduct = (productKey) => {
     if (formData.selected_products.includes(productKey)) {
@@ -86,49 +78,70 @@ export default function PackagingForm({ workers, products, availableStock, onSub
       return;
     }
 
+    if (piecesMismatch) {
+      alert(`Total pieces selected (${totalSelectedPieces}) must equal required pieces (${requiredPieces})`);
+      return;
+    }
+
+    if (!formData.sku_code.trim()) {
+      alert("Please enter an SKU code");
+      return;
+    }
+
+    if (!formData.sku_product) {
+      alert("Please select which product this SKU represents");
+      return;
+    }
+
     setShowConfirm(true);
   };
 
   const confirmSubmit = async () => {
     const worker = workers.find(w => w.id === formData.packed_by);
+    const skuProduct = products.find(p => 
+      `${p.series_id}-${p.color_id}-${p.size_id}-${p.material_id || ''}-${p.style_id || ''}` === formData.sku_product
+    );
 
-    // Create entries for each selected product
-    for (const productKey of formData.selected_products) {
-      const selectedProduct = products.find(p => 
-        `${p.series_id}-${p.color_id}-${p.size_id}-${p.material_id || ''}-${p.style_id || ''}` === productKey
-      );
+    if (!skuProduct) return;
 
-      const productQty = parseInt(productQuantities[productKey]) || 0;
-      if (selectedProduct && productQty > 0) {
-        await onSubmit({
-          series_id: selectedProduct.series_id,
-          series_name: selectedProduct.series_name,
-          color_id: selectedProduct.color_id,
-          color_name: selectedProduct.color_name,
-          size_id: selectedProduct.size_id,
-          size_name: selectedProduct.size_name,
-          material_id: selectedProduct.material_id || "",
-          material_name: selectedProduct.material_name || "",
-          style_id: selectedProduct.style_id || "",
-          style_name: selectedProduct.style_name || "",
-          pack_type: formData.pack_type,
-          quantity: parseInt(formData.quantity),
-          total_pieces: productQty,
-          packed_by: formData.packed_by,
-          packed_by_name: worker?.name || "",
-          sku_records: recordedSkus
-        });
-      }
-    }
+    // Create single entry for the SKU
+    await onSubmit({
+      series_id: skuProduct.series_id,
+      series_name: skuProduct.series_name,
+      color_id: skuProduct.color_id,
+      color_name: skuProduct.color_name,
+      size_id: skuProduct.size_id,
+      size_name: skuProduct.size_name,
+      material_id: skuProduct.material_id || "",
+      material_name: skuProduct.material_name || "",
+      style_id: skuProduct.style_id || "",
+      style_name: skuProduct.style_name || "",
+      pack_type: formData.pack_type,
+      quantity: parseInt(formData.quantity),
+      total_pieces: requiredPieces,
+      packed_by: formData.packed_by,
+      packed_by_name: worker?.name || "",
+      sku_code: formData.sku_code.trim(),
+      source_products: formData.selected_products.map(productKey => {
+        const p = products.find(prod => 
+          `${prod.series_id}-${prod.color_id}-${prod.size_id}-${prod.material_id || ''}-${prod.style_id || ''}` === productKey
+        );
+        return {
+          product: `${p.series_name} - ${p.color_name} - ${p.size_name}${p.material_name ? ` - ${p.material_name}` : ''}${p.style_name ? ` - ${p.style_name}` : ''}`,
+          quantity: parseInt(productQuantities[productKey]) || 0
+        };
+      })
+    });
 
     setFormData({
       selected_products: [],
       pack_type: "",
       quantity: "",
-      packed_by: ""
+      packed_by: "",
+      sku_code: "",
+      sku_product: ""
     });
     setProductQuantities({});
-    setRecordedSkus([]);
     setShowConfirm(false);
   };
 
@@ -153,6 +166,14 @@ export default function PackagingForm({ workers, products, availableStock, onSub
         qty
       };
     });
+  };
+
+  const getSkuProductDisplay = () => {
+    const product = products.find(p => 
+      `${p.series_id}-${p.color_id}-${p.size_id}-${p.material_id || ''}-${p.style_id || ''}` === formData.sku_product
+    );
+    if (!product) return "";
+    return `${product.series_name} - ${product.color_name} - ${product.size_name}${product.material_name ? ` - ${product.material_name}` : ''}${product.style_name ? ` - ${product.style_name}` : ''}`;
   };
 
   return (
@@ -206,32 +227,40 @@ export default function PackagingForm({ workers, products, availableStock, onSub
             </div>
           </div>
 
-          {/* SKU Recording */}
+          {/* SKU Code */}
           <div className="space-y-2">
-            <Label>Record SKU Codes</Label>
+            <Label>SKU Code *</Label>
             <Input
               type="text"
-              placeholder="Scan or type SKU, press Enter to record"
-              value={skuInput}
-              onChange={(e) => setSkuInput(e.target.value)}
-              onKeyDown={handleSkuKeyDown}
+              placeholder="Enter or scan SKU code"
+              value={formData.sku_code}
+              onChange={(e) => setFormData({ ...formData, sku_code: e.target.value })}
             />
-            {recordedSkus.length > 0 && (
-              <div className="flex flex-wrap gap-2 p-3 bg-slate-50 rounded-lg">
-                {recordedSkus.map((sku, index) => (
-                  <Badge key={index} variant="secondary" className="gap-1">
-                    {sku}
-                    <button
-                      type="button"
-                      onClick={() => removeSkuRecord(index)}
-                      className="ml-1 hover:text-red-600"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            )}
+          </div>
+
+          {/* SKU Product Specification */}
+          <div className="space-y-2">
+            <Label>This SKU Represents *</Label>
+            <Select
+              value={formData.sku_product}
+              onValueChange={(value) => setFormData({ ...formData, sku_product: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select which product this SKU is" />
+              </SelectTrigger>
+              <SelectContent>
+                {products.map((p) => {
+                  const key = `${p.series_id}-${p.color_id}-${p.size_id}-${p.material_id || ''}-${p.style_id || ''}`;
+                  return (
+                    <SelectItem key={key} value={key}>
+                      {p.series_name} - {p.color_name} - {p.size_name}
+                      {p.material_name && ` - ${p.material_name}`}
+                      {p.style_name && ` - ${p.style_name}`}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Pack Type & Quantity */}
@@ -268,11 +297,21 @@ export default function PackagingForm({ workers, products, availableStock, onSub
             </div>
           </div>
 
-          {totalPieces > 0 && (
-            <div className="p-3 rounded-lg text-center bg-blue-50">
-              <span className="font-medium text-blue-700">
-                Total Pieces: {totalPieces}
-              </span>
+          {requiredPieces > 0 && (
+            <div className={`p-3 rounded-lg ${piecesMismatch ? 'bg-red-50 border-2 border-red-300' : 'bg-emerald-50 border-2 border-emerald-300'}`}>
+              <div className="text-center space-y-1">
+                <p className={`text-sm font-semibold ${piecesMismatch ? 'text-red-700' : 'text-emerald-700'}`}>
+                  Required: {requiredPieces} pieces
+                </p>
+                <p className={`text-lg font-bold ${piecesMismatch ? 'text-red-700' : 'text-emerald-700'}`}>
+                  Selected: {totalSelectedPieces} pieces
+                </p>
+                {piecesMismatch && (
+                  <p className="text-xs text-red-600 font-medium">
+                    ⚠ Mismatch! Adjust quantities to match required pieces
+                  </p>
+                )}
+              </div>
             </div>
           )}
 
@@ -298,7 +337,7 @@ export default function PackagingForm({ workers, products, availableStock, onSub
 
           <Button
             type="submit"
-            disabled={isLoading || formData.selected_products.length === 0 || !formData.pack_type || !formData.quantity || !formData.packed_by}
+            disabled={isLoading || formData.selected_products.length === 0 || !formData.pack_type || !formData.quantity || !formData.packed_by || piecesMismatch || !formData.sku_code.trim() || !formData.sku_product}
             className="w-full bg-violet-600 hover:bg-violet-700"
           >
             <Eye className="w-4 h-4 mr-2" /> Preview & Confirm
@@ -306,49 +345,51 @@ export default function PackagingForm({ workers, products, availableStock, onSub
         </form>
 
         <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
-          <AlertDialogContent className="max-w-2xl">
+          <AlertDialogContent className="max-w-md">
             <AlertDialogHeader>
-              <AlertDialogTitle>Confirm Packaging Entry</AlertDialogTitle>
-              <AlertDialogDescription>
-                Please review the packaging details before submitting.
-              </AlertDialogDescription>
+              <AlertDialogTitle>Confirm Packaging</AlertDialogTitle>
             </AlertDialogHeader>
-            <div className="space-y-3 py-4 max-h-96 overflow-y-auto">
-              <div className="bg-violet-50 p-3 rounded-lg">
-                <p className="text-sm text-violet-700 mb-1">Pack Type</p>
-                <p className="font-medium text-violet-900">{getPackTypeLabel()}</p>
+            <div className="space-y-2">
+              <div className="bg-violet-600 text-white p-2 rounded text-center">
+                <p className="text-sm font-bold">Packaging Stage</p>
               </div>
-              <div className="bg-violet-50 p-3 rounded-lg">
-                <p className="text-sm text-violet-700 mb-1">Number of Packs</p>
-                <p className="font-medium text-violet-900">{formData.quantity}</p>
+              <div className="bg-violet-50 p-2 rounded border border-violet-200">
+                <p className="text-xs text-violet-700">Pack Type</p>
+                <p className="font-semibold text-sm">{getPackTypeLabel()}</p>
               </div>
-              <div className="bg-slate-50 p-3 rounded-lg">
-                <p className="text-sm text-slate-500 mb-1">Packed By</p>
-                <p className="font-medium">{getWorkerDisplay()}</p>
+              <div className="bg-violet-50 p-2 rounded border border-violet-200">
+                <p className="text-xs text-violet-700">Quantity</p>
+                <p className="font-semibold text-sm">{formData.quantity} packs</p>
               </div>
-              <div className="bg-slate-50 p-3 rounded-lg">
-                <p className="text-sm text-slate-500 mb-2">Selected Products ({formData.selected_products.length})</p>
-                <div className="space-y-2">
+              <div className="bg-emerald-100 p-2 rounded text-center border border-emerald-200">
+                <p className="text-xs text-emerald-700">Total Pieces</p>
+                <p className="text-xl font-bold text-emerald-700">{requiredPieces} pcs</p>
+              </div>
+              <div className="bg-blue-50 p-2 rounded border border-blue-200">
+                <p className="text-xs text-blue-700">SKU Code</p>
+                <p className="font-bold text-lg">{formData.sku_code}</p>
+              </div>
+              <div className="bg-blue-50 p-2 rounded border border-blue-200">
+                <p className="text-xs text-blue-700">SKU Product</p>
+                <p className="font-semibold text-sm">{getSkuProductDisplay()}</p>
+              </div>
+              <div className="bg-slate-100 p-2 rounded">
+                <p className="text-xs text-slate-600">Worker</p>
+                <p className="font-semibold text-sm">{getWorkerDisplay()}</p>
+              </div>
+              <div className="bg-slate-50 p-2 rounded border">
+                <p className="text-xs text-slate-600 mb-1">Source Products</p>
+                <div className="space-y-1">
                   {getSelectedProductsDisplay().map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center text-sm">
+                    <div key={idx} className="flex justify-between text-xs">
                       <span>{item.name}</span>
-                      <Badge variant="secondary">{item.qty} pcs</Badge>
+                      <span className="font-semibold">{item.qty} pcs</span>
                     </div>
                   ))}
                 </div>
               </div>
-              {recordedSkus.length > 0 && (
-                <div className="bg-slate-50 p-3 rounded-lg">
-                  <p className="text-sm text-slate-500 mb-2">SKU Codes ({recordedSkus.length})</p>
-                  <div className="flex flex-wrap gap-2">
-                    {recordedSkus.map((sku, idx) => (
-                      <Badge key={idx} variant="outline">{sku}</Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
-            <AlertDialogFooter>
+            <AlertDialogFooter className="mt-3">
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={confirmSubmit} disabled={isLoading} className="bg-violet-600 hover:bg-violet-700">
                 {isLoading ? (
@@ -356,7 +397,7 @@ export default function PackagingForm({ workers, products, availableStock, onSub
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting...
                   </>
                 ) : (
-                  "Confirm & Submit"
+                  "Confirm"
                 )}
               </AlertDialogAction>
             </AlertDialogFooter>
