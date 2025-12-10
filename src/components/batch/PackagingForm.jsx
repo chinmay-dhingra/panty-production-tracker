@@ -193,6 +193,7 @@ export default function PackagingForm({ workers, products, availableStock, onSub
                         placeholder="Qty"
                         value={productQuantities[productKey] || ""}
                         onChange={(e) => updateProductQuantity(productKey, e.target.value)}
+                        onWheel={(e) => e.target.blur()}
                         className="w-20 h-8"
                       />
                     )}
@@ -262,6 +263,7 @@ export default function PackagingForm({ workers, products, availableStock, onSub
                 placeholder="0"
                 value={formData.quantity}
                 onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                onWheel={(e) => e.target.blur()}
               />
             </div>
           </div>

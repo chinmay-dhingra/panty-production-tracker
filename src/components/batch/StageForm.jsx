@@ -155,6 +155,7 @@ export default function StageForm({ stage, workers, products, onSubmit, isLoadin
                 placeholder="0"
                 value={formData.qc_pass}
                 onChange={(e) => setFormData({ ...formData, qc_pass: e.target.value })}
+                onWheel={(e) => e.target.blur()}
                 className="border-emerald-200 focus:border-emerald-500"
               />
             </div>
@@ -168,6 +169,7 @@ export default function StageForm({ stage, workers, products, onSubmit, isLoadin
                 placeholder="0"
                 value={formData.qc_fail}
                 onChange={(e) => setFormData({ ...formData, qc_fail: e.target.value })}
+                onWheel={(e) => e.target.blur()}
                 className="border-red-200 focus:border-red-500"
               />
             </div>
@@ -181,6 +183,7 @@ export default function StageForm({ stage, workers, products, onSubmit, isLoadin
                 placeholder="0"
                 value={formData.alteration}
                 onChange={(e) => setFormData({ ...formData, alteration: e.target.value })}
+                onWheel={(e) => e.target.blur()}
                 className="border-amber-200 focus:border-amber-500"
               />
             </div>

@@ -14,9 +14,17 @@ import {
 import { Pencil, Loader2, Trash2 } from "lucide-react";
 import { AdminOnly } from "../admin/AdminGuard";
 
+const stageLabels = {
+  counting: "Counting",
+  cleaning: "Cleaning",
+  stamping: "Stamping",
+  ironing: "Ironing"
+};
+
 export default function EditStageRecord({ record, workers, onUpdate, onDelete, isLoading }) {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
+    stage: record.stage || "",
     qc_pass: record.qc_pass || 0,
     qc_fail: record.qc_fail || 0,
     alteration: record.alteration || 0,
@@ -29,11 +37,14 @@ export default function EditStageRecord({ record, workers, onUpdate, onDelete, i
     e.preventDefault();
     const worker = workers.find(w => w.id === formData.completed_by);
     onUpdate(record.id, {
-      ...formData,
+      stage: formData.stage,
       qc_pass: parseInt(formData.qc_pass) || 0,
       qc_fail: parseInt(formData.qc_fail) || 0,
       alteration: parseInt(formData.alteration) || 0,
-      completed_by_name: worker?.name || record.completed_by_name
+      defect_reason: formData.defect_reason,
+      completed_by: formData.completed_by,
+      completed_by_name: worker?.name || record.completed_by_name,
+      notes: formData.notes
     });
     setOpen(false);
   };
@@ -53,6 +64,24 @@ export default function EditStageRecord({ record, workers, onUpdate, onDelete, i
               <p className="text-xs text-slate-500">ID: {record.id}</p>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label>Stage</Label>
+                <Select
+                  value={formData.stage}
+                  onValueChange={(value) => setFormData({ ...formData, stage: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="counting">Counting</SelectItem>
+                    <SelectItem value="cleaning">Cleaning</SelectItem>
+                    <SelectItem value="stamping">Stamping</SelectItem>
+                    <SelectItem value="ironing">Ironing</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <Label className="text-xs">Pass</Label>
@@ -60,6 +89,7 @@ export default function EditStageRecord({ record, workers, onUpdate, onDelete, i
                     type="number"
                     value={formData.qc_pass}
                     onChange={(e) => setFormData({ ...formData, qc_pass: e.target.value })}
+                    onWheel={(e) => e.target.blur()}
                   />
                 </div>
                 <div>
@@ -68,6 +98,7 @@ export default function EditStageRecord({ record, workers, onUpdate, onDelete, i
                     type="number"
                     value={formData.qc_fail}
                     onChange={(e) => setFormData({ ...formData, qc_fail: e.target.value })}
+                    onWheel={(e) => e.target.blur()}
                   />
                 </div>
                 <div>
@@ -76,6 +107,7 @@ export default function EditStageRecord({ record, workers, onUpdate, onDelete, i
                     type="number"
                     value={formData.alteration}
                     onChange={(e) => setFormData({ ...formData, alteration: e.target.value })}
+                    onWheel={(e) => e.target.blur()}
                   />
                 </div>
               </div>
