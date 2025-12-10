@@ -261,62 +261,62 @@ export default function StageForm({ stage, workers, products, onSubmit, isLoadin
         </form>
 
         <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
-          <AlertDialogContent>
+          <AlertDialogContent className="max-w-md">
             <AlertDialogHeader>
-              <AlertDialogTitle>Confirm {stageLabels[stage]} Entry</AlertDialogTitle>
-              <AlertDialogDescription>
-                Please review the entry details before submitting.
-              </AlertDialogDescription>
+              <AlertDialogTitle>Confirm Entry</AlertDialogTitle>
             </AlertDialogHeader>
-            <div className="space-y-3 py-4">
-              <div className="bg-slate-50 p-3 rounded-lg">
-                <p className="text-sm text-slate-500 mb-1">Product</p>
-                <p className="font-medium">{getProductDisplay()}</p>
+            <div className="space-y-2">
+              <div className="bg-slate-800 text-white p-2 rounded text-center">
+                <p className="text-sm font-bold">{stageLabels[stage]}</p>
               </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="bg-emerald-50 p-3 rounded-lg">
-                  <p className="text-xs text-emerald-700 mb-1">QC Pass</p>
-                  <p className="text-xl font-bold text-emerald-700">{formData.qc_pass || 0}</p>
+              <div className="bg-slate-100 p-2 rounded">
+                <p className="text-xs text-slate-600">Product</p>
+                <p className="font-semibold text-sm">{getProductDisplay()}</p>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="bg-emerald-50 p-2 rounded text-center border border-emerald-200">
+                  <p className="text-xs text-emerald-700">Pass</p>
+                  <p className="text-lg font-bold text-emerald-700">{formData.qc_pass || 0}</p>
                 </div>
-                <div className="bg-red-50 p-3 rounded-lg">
-                  <p className="text-xs text-red-700 mb-1">QC Fail</p>
-                  <p className="text-xl font-bold text-red-700">{formData.qc_fail || 0}</p>
+                <div className="bg-red-50 p-2 rounded text-center border border-red-200">
+                  <p className="text-xs text-red-700">Fail</p>
+                  <p className="text-lg font-bold text-red-700">{formData.qc_fail || 0}</p>
                 </div>
-                <div className="bg-amber-50 p-3 rounded-lg">
-                  <p className="text-xs text-amber-700 mb-1">Alteration</p>
-                  <p className="text-xl font-bold text-amber-700">{formData.alteration || 0}</p>
+                <div className="bg-amber-50 p-2 rounded text-center border border-amber-200">
+                  <p className="text-xs text-amber-700">Alt</p>
+                  <p className="text-lg font-bold text-amber-700">{formData.alteration || 0}</p>
                 </div>
               </div>
-              <div className="bg-blue-50 p-3 rounded-lg">
-                <p className="text-xs text-blue-700 mb-1">Total Pieces</p>
-                <p className="text-lg font-bold text-blue-700">{totalPcs}</p>
+              <div className="bg-blue-100 p-2 rounded text-center border border-blue-200">
+                <p className="text-xs text-blue-700">Total</p>
+                <p className="text-xl font-bold text-blue-700">{totalPcs} pcs</p>
               </div>
-              <div className="bg-slate-50 p-3 rounded-lg">
-                <p className="text-sm text-slate-500 mb-1">Completed By</p>
-                <p className="font-medium">{getWorkerDisplay()}</p>
+              <div className="bg-slate-100 p-2 rounded">
+                <p className="text-xs text-slate-600">Worker</p>
+                <p className="font-semibold text-sm">{getWorkerDisplay()}</p>
               </div>
               {formData.defect_reason && (
-                <div className="bg-slate-50 p-3 rounded-lg">
-                  <p className="text-sm text-slate-500 mb-1">Defect Reason</p>
-                  <p className="font-medium">{formData.defect_reason.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                <div className="bg-orange-50 p-2 rounded border border-orange-200">
+                  <p className="text-xs text-orange-700">Defect Reason</p>
+                  <p className="font-semibold text-sm">{formData.defect_reason.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
                 </div>
               )}
               {formData.notes && (
-                <div className="bg-slate-50 p-3 rounded-lg">
-                  <p className="text-sm text-slate-500 mb-1">Notes</p>
+                <div className="bg-slate-100 p-2 rounded">
+                  <p className="text-xs text-slate-600">Notes</p>
                   <p className="text-sm">{formData.notes}</p>
                 </div>
               )}
             </div>
-            <AlertDialogFooter>
+            <AlertDialogFooter className="mt-3">
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmSubmit} disabled={isLoading}>
+              <AlertDialogAction onClick={confirmSubmit} disabled={isLoading} className="bg-slate-800 hover:bg-slate-700">
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting...
                   </>
                 ) : (
-                  "Confirm & Submit"
+                  "Confirm"
                 )}
               </AlertDialogAction>
             </AlertDialogFooter>
