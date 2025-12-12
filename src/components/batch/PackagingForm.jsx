@@ -180,23 +180,112 @@ export default function PackagingForm({ workers, products, availableStock, onSub
       <CardHeader className="bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-t-lg">
         <CardTitle className="flex items-center gap-2">
           <Package className="w-5 h-5" />
-          Add Packaging Entry
+          Create Final SKU Bundle
         </CardTitle>
       </CardHeader>
       <CardContent className="p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Product Selection - Multiple checkboxes with quantity */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-1">
-              <Layers className="w-3 h-3" /> Select Products ({formData.selected_products.length} selected)
-            </Label>
-            <div className="border rounded-lg p-3 max-h-64 overflow-y-auto space-y-2">
+          {/* FINAL SKU DETAILS SECTION */}
+          <div className="bg-violet-50 border-2 border-violet-300 rounded-lg p-4 space-y-4">
+            <h3 className="font-bold text-violet-900 flex items-center gap-2">
+              <Package className="w-4 h-4" />
+              Final SKU Bundle Details
+            </h3>
+
+            {/* SKU Code */}
+            <div className="space-y-2">
+              <Label className="text-violet-900">SKU Code *</Label>
+              <Input
+                type="text"
+                placeholder="e.g., SBP09_M"
+                value={formData.sku_code}
+                onChange={(e) => setFormData({ ...formData, sku_code: e.target.value })}
+                className="border-violet-300 focus:border-violet-500"
+              />
+            </div>
+
+            {/* SKU Size Selection */}
+            <div className="space-y-2">
+              <Label className="text-violet-900">SKU Size *</Label>
+              <Select
+                value={formData.sku_size_id}
+                onValueChange={(value) => setFormData({ ...formData, sku_size_id: value })}
+              >
+                <SelectTrigger className="border-violet-300 focus:border-violet-500">
+                  <SelectValue placeholder="Select size for this SKU" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sizes.map((size) => (
+                    <SelectItem key={size.id} value={size.id}>
+                      {size.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Pack Type & Quantity */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-violet-900">Pack Type *</Label>
+                <Select
+                  value={formData.pack_type}
+                  onValueChange={(value) => setFormData({ ...formData, pack_type: value })}
+                >
+                  <SelectTrigger className="border-violet-300 focus:border-violet-500">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PACK_TYPES.map((pack) => (
+                      <SelectItem key={pack.value} value={pack.value}>
+                        {pack.label} ({pack.pieces} pc)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-violet-900">Number of Bundles *</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  placeholder="0"
+                  value={formData.quantity}
+                  onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                  onWheel={(e) => e.target.blur()}
+                  className="border-violet-300 focus:border-violet-500"
+                />
+              </div>
+            </div>
+
+            {formData.quantity && formData.pack_type && (
+              <div className="bg-white p-3 rounded border-2 border-violet-400 text-center">
+                <p className="text-sm text-violet-700">Creating</p>
+                <p className="text-2xl font-bold text-violet-900">
+                  {formData.quantity} SKU Bundle{parseInt(formData.quantity) > 1 ? 's' : ''}
+                </p>
+                <p className="text-xs text-violet-600 mt-1">
+                  ({getPackTypeLabel()})
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* RAW PRODUCTS CONSUMED SECTION */}
+          <div className="border-2 border-slate-300 rounded-lg p-4 space-y-4">
+            <h3 className="font-bold text-slate-900 flex items-center gap-2">
+              <Layers className="w-4 h-4" />
+              Raw Products Consumed ({formData.selected_products.length} selected)
+            </h3>
+            
+            <div className="border rounded-lg p-3 max-h-64 overflow-y-auto space-y-2 bg-slate-50">
               {products.map((p) => {
                 const productKey = `${p.series_id}-${p.color_id}-${p.size_id}-${p.material_id || ''}-${p.style_id || ''}`;
                 const available = availableStock[productKey] || 0;
                 const isSelected = formData.selected_products.includes(productKey);
                 return (
-                  <div key={productKey} className="flex items-center gap-2 p-2 hover:bg-slate-50 rounded">
+                  <div key={productKey} className="flex items-center gap-2 p-2 bg-white hover:bg-slate-100 rounded border">
                     <Checkbox
                       checked={isSelected}
                       onCheckedChange={() => toggleProduct(productKey)}
@@ -223,71 +312,6 @@ export default function PackagingForm({ workers, products, availableStock, onSub
                   </div>
                 );
               })}
-            </div>
-          </div>
-
-          {/* SKU Code */}
-          <div className="space-y-2">
-            <Label>SKU Code *</Label>
-            <Input
-              type="text"
-              placeholder="Enter or scan SKU code"
-              value={formData.sku_code}
-              onChange={(e) => setFormData({ ...formData, sku_code: e.target.value })}
-            />
-          </div>
-
-          {/* SKU Size Selection */}
-          <div className="space-y-2">
-            <Label>SKU Size *</Label>
-            <Select
-              value={formData.sku_size_id}
-              onValueChange={(value) => setFormData({ ...formData, sku_size_id: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select size for this SKU" />
-              </SelectTrigger>
-              <SelectContent>
-                {sizes.map((size) => (
-                  <SelectItem key={size.id} value={size.id}>
-                    {size.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Pack Type & Quantity */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Pack Type</Label>
-              <Select
-                value={formData.pack_type}
-                onValueChange={(value) => setFormData({ ...formData, pack_type: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select pack type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {PACK_TYPES.map((pack) => (
-                    <SelectItem key={pack.value} value={pack.value}>
-                      {pack.label} ({pack.pieces} pc)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Number of Packs</Label>
-              <Input
-                type="number"
-                min="1"
-                placeholder="0"
-                value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                onWheel={(e) => e.target.blur()}
-              />
             </div>
           </div>
 
