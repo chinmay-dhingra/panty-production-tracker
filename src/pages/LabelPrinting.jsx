@@ -4,7 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Printer, Settings, Loader2, Package } from "lucide-react";
+import { Printer, Settings, Loader2, Package, Plus, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 import LabelDesigner from "../components/labels/LabelDesigner";
 import LabelPreview from "../components/labels/LabelPreview";
 import LabelPresets from "../components/labels/LabelPresets";
@@ -83,25 +85,49 @@ export default function LabelPrinting() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {skuList.map((sku, idx) => (
-                    <div
-                      key={idx}
-                      onClick={() => setSelectedSKU(sku)}
-                      className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                        selectedSKU?.sku_code === sku.sku_code
-                          ? 'border-violet-500 bg-violet-50'
-                          : 'border-slate-200 hover:border-slate-300'
-                      }`}
-                    >
-                      <p className="font-bold text-slate-900">{sku.sku_code}</p>
-                      <p className="text-xs text-slate-600">
-                        {sku.pack_type?.replace('_', ' ')} • Size: {sku.size_name}
-                      </p>
-                      <p className="text-xs text-slate-500">Batch: {sku.batch_number}</p>
+                {skuList.length === 0 ? (
+                  <div className="text-center py-8 space-y-4">
+                    <Package className="w-12 h-12 mx-auto text-slate-300" />
+                    <div>
+                      <p className="font-medium text-slate-700">No SKUs Created Yet</p>
+                      <p className="text-sm text-slate-500 mt-1">Create packaging entries to generate labels</p>
                     </div>
-                  ))}
-                </div>
+                    <div className="space-y-2">
+                      <Link to={createPageUrl("NewBatch")}>
+                        <Button className="w-full bg-violet-600 hover:bg-violet-700">
+                          <Plus className="w-4 h-4 mr-2" />
+                          Create New Batch
+                        </Button>
+                      </Link>
+                      <Link to={createPageUrl("Dashboard")}>
+                        <Button variant="outline" className="w-full">
+                          <ArrowRight className="w-4 h-4 mr-2" />
+                          Go to Existing Batch
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {skuList.map((sku, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => setSelectedSKU(sku)}
+                        className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                          selectedSKU?.sku_code === sku.sku_code
+                            ? 'border-violet-500 bg-violet-50'
+                            : 'border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <p className="font-bold text-slate-900">{sku.sku_code}</p>
+                        <p className="text-xs text-slate-600">
+                          {sku.pack_type?.replace('_', ' ')} • Size: {sku.size_name}
+                        </p>
+                        <p className="text-xs text-slate-500">Batch: {sku.batch_number}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
