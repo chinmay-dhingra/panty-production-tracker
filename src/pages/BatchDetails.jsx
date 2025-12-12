@@ -150,7 +150,8 @@ export default function BatchDetails() {
       total_pieces: data.total_pieces,
       packed_by: data.packed_by,
       packed_by_name: data.packed_by_name,
-      sku_code: data.sku_code
+      sku_code: data.sku_code,
+      source_products: data.source_products
     });
 
     // Deduct raw products from inventory
@@ -633,25 +634,37 @@ export default function BatchDetails() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {skus.map((sku) => (
-                      <div key={sku.id} className="p-3 bg-violet-50 rounded-lg border border-violet-200">
-                        <div className="flex justify-between items-start gap-2">
-                          <div className="flex-1">
-                            <p className="font-semibold text-sm text-violet-900">
-                              {sku.series_name} - {sku.color_name} - {sku.size_name}
-                              {sku.material_name && ` - ${sku.material_name}`}
-                              {sku.style_name && ` - ${sku.style_name}`}
-                            </p>
-                            <p className="text-xs text-violet-700 mt-1">
-                              {sku.pack_type?.replace("_", " ")} • SKU: {sku.sku_code}
-                            </p>
+                    {(() => {
+                      const skuSummaryMap = {};
+                      skus.forEach(sku => {
+                        const key = sku.sku_code;
+                        if (!skuSummaryMap[key]) {
+                          skuSummaryMap[key] = {
+                            sku_code: sku.sku_code,
+                            size_name: sku.size_name,
+                            pack_type: sku.pack_type,
+                            totalQuantity: 0
+                          };
+                        }
+                        skuSummaryMap[key].totalQuantity += sku.quantity || 0;
+                      });
+
+                      return Object.values(skuSummaryMap).map((summary, idx) => (
+                        <div key={idx} className="p-3 bg-violet-50 rounded-lg border border-violet-200">
+                          <div className="flex justify-between items-center">
+                            <div className="flex-1">
+                              <p className="font-bold text-lg text-violet-900">{summary.sku_code}</p>
+                              <p className="text-xs text-violet-700 mt-1">
+                                {summary.pack_type?.replace("_", " ")} • Size: {summary.size_name}
+                              </p>
+                            </div>
+                            <Badge className="bg-violet-600 shrink-0">
+                              {summary.totalQuantity} packs
+                            </Badge>
                           </div>
-                          <Badge className="bg-violet-600 shrink-0">
-                            {sku.quantity} packs
-                          </Badge>
                         </div>
-                      </div>
-                    ))}
+                      ));
+                    })()}
                   </div>
                 </CardContent>
               </Card>
