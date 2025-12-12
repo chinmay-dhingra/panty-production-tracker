@@ -15,6 +15,10 @@ import ReportFilters from "../components/reports/ReportFilters";
 import DefectAnalysis from "../components/reports/DefectAnalysis";
 import ThroughputChart from "../components/reports/ThroughputChart";
 import ExportReportPDF from "../components/reports/ExportReportPDF";
+import ProductionSummary from "../components/reports/ProductionSummary";
+import EfficiencyReport from "../components/reports/EfficiencyReport";
+import SKUOutputReport from "../components/reports/SKUOutputReport";
+import AdvancedWorkerDashboard from "../components/reports/AdvancedWorkerDashboard";
 import { isWithinInterval } from "date-fns";
 
 const COLORS = ["#10b981", "#ef4444", "#f59e0b"];
@@ -43,6 +47,11 @@ export default function Reports() {
   const { data: series = [] } = useQuery({
     queryKey: ["productSeries"],
     queryFn: () => base44.entities.ProductSeries.list()
+  });
+
+  const { data: workers = [] } = useQuery({
+    queryKey: ["workers"],
+    queryFn: () => base44.entities.Worker.filter({ is_active: true })
   });
 
   const isLoading = batchesLoading || recordsLoading || skusLoading;
@@ -160,6 +169,10 @@ export default function Reports() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="bg-white border shadow-sm">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="production">Production Summary</TabsTrigger>
+            <TabsTrigger value="efficiency">Efficiency</TabsTrigger>
+            <TabsTrigger value="sku">SKU Output</TabsTrigger>
+            <TabsTrigger value="workers">Worker Performance</TabsTrigger>
             <TabsTrigger value="defects">Defect Analysis</TabsTrigger>
             <TabsTrigger value="throughput">Throughput</TabsTrigger>
           </TabsList>
@@ -394,6 +407,43 @@ export default function Reports() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Production Summary Tab */}
+          <TabsContent value="production">
+            <ProductionSummary 
+              stageRecords={stageRecords} 
+              skus={skus} 
+              batches={batches}
+              dateRange={filters.dateRange}
+            />
+          </TabsContent>
+
+          {/* Efficiency Tab */}
+          <TabsContent value="efficiency">
+            <EfficiencyReport 
+              stageRecords={stageRecords}
+              dateRange={filters.dateRange}
+            />
+          </TabsContent>
+
+          {/* SKU Output Tab */}
+          <TabsContent value="sku">
+            <SKUOutputReport 
+              skus={skus}
+              dateRange={filters.dateRange}
+              seriesFilter={filters.series}
+            />
+          </TabsContent>
+
+          {/* Worker Performance Tab */}
+          <TabsContent value="workers">
+            <AdvancedWorkerDashboard 
+              stageRecords={stageRecords}
+              skus={skus}
+              workers={workers}
+              dateRange={filters.dateRange}
+            />
           </TabsContent>
 
           {/* Defects Tab */}
