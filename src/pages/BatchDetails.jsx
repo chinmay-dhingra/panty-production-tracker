@@ -451,55 +451,69 @@ export default function BatchDetails() {
                     <p className="text-slate-400 text-center py-6">No packaging entries yet</p>
                   ) : (
                     <div className="space-y-3">
-                      {skus.map((sku) => (
-                        <div key={sku.id} className="border-2 border-violet-300 rounded-lg overflow-hidden">
-                          {/* SKU Header - Main Focus */}
-                          <div className="bg-violet-600 text-white p-3">
-                            <div className="flex items-center justify-between mb-1">
-                              <div className="flex items-center gap-2">
-                                <Package className="w-4 h-4" />
-                                <span className="font-bold text-sm">FINAL SKU CREATED</span>
+                      {skus.map((sku) => {
+                        const packType = sku.pack_type?.replace("_", " ") || "";
+                        const piecesPerPack = sku.pack_type ? parseInt(sku.pack_type.split("_")[0]) || 1 : 1;
+                        const totalPacks = sku.quantity || 0;
+                        const totalPieces = sku.total_pieces || (piecesPerPack * totalPacks);
+                        
+                        return (
+                          <div key={sku.id} className="border-2 border-violet-300 rounded-lg overflow-hidden">
+                            {/* SKU Header - Main Focus */}
+                            <div className="bg-violet-600 text-white p-3">
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center gap-2">
+                                  <Package className="w-4 h-4" />
+                                  <span className="font-bold text-sm">FINAL SKU CREATED</span>
+                                </div>
+                                <span className="text-xs bg-white/20 px-2 py-1 rounded">
+                                  {format(new Date(sku.created_date), "MMM d, HH:mm")}
+                                </span>
                               </div>
-                              <span className="text-xs bg-white/20 px-2 py-1 rounded">
-                                {format(new Date(sku.created_date), "MMM d, HH:mm")}
-                              </span>
+                              <p className="text-2xl font-bold mt-2 mb-1">
+                                {sku.sku_code}
+                              </p>
+                              <div className="bg-white/20 rounded p-2 mt-2">
+                                <p className="text-sm font-semibold">
+                                  {piecesPerPack} pieces per pack × {totalPacks} packs = {totalPieces} pieces
+                                </p>
+                              </div>
                             </div>
-                            <p className="text-xl font-bold mt-2">
-                              {sku.series_name} - {sku.color_name} - {sku.size_name}
-                              {sku.material_name && ` - ${sku.material_name}`}
-                              {sku.style_name && ` - ${sku.style_name}`}
-                            </p>
-                            <div className="flex items-center gap-3 mt-2">
-                              <Badge className="bg-white text-violet-600 font-bold">
-                                {sku.quantity} × {sku.pack_type?.replace("_", " ")}
-                              </Badge>
-                              <span className="text-sm">SKU Code: {sku.sku_code}</span>
-                            </div>
-                          </div>
 
-                          {/* Raw Products Consumed */}
-                          <div className="bg-violet-50 p-3">
-                            <p className="text-xs text-violet-700 font-bold mb-2 uppercase">Raw Products Consumed:</p>
-                            <div className="space-y-1">
-                              {sku.source_products && sku.source_products.length > 0 ? (
-                                sku.source_products.map((source, idx) => (
-                                  <div key={idx} className="flex justify-between items-center bg-white p-2 rounded border border-violet-200">
-                                    <span className="text-sm text-slate-700">{source.product}</span>
-                                    <Badge variant="outline" className="font-bold text-violet-700">
-                                      {source.quantity} pcs
-                                    </Badge>
-                                  </div>
-                                ))
-                              ) : (
-                                <p className="text-xs text-slate-400">No source products recorded</p>
+                            {/* Raw Products Consumed */}
+                            <div className="bg-violet-50 p-3">
+                              <p className="text-xs text-violet-700 font-bold mb-2 uppercase">Raw Products Consumed:</p>
+                              <div className="space-y-1">
+                                {sku.source_products && sku.source_products.length > 0 ? (
+                                  sku.source_products.map((source, idx) => {
+                                    const rawProductName = [
+                                      source.series_name,
+                                      source.color_name,
+                                      source.size_name,
+                                      source.material_name,
+                                      source.style_name
+                                    ].filter(Boolean).join(" - ");
+                                    
+                                    return (
+                                      <div key={idx} className="flex justify-between items-center bg-white p-2 rounded border border-violet-200">
+                                        <span className="text-sm text-slate-700">{rawProductName}</span>
+                                        <Badge variant="outline" className="font-bold text-violet-700">
+                                          {source.quantity} pcs
+                                        </Badge>
+                                      </div>
+                                    );
+                                  })
+                                ) : (
+                                  <p className="text-xs text-slate-400">No source products recorded</p>
+                                )}
+                              </div>
+                              {sku.packed_by_name && (
+                                <p className="text-xs text-slate-500 mt-2">Packed by: {sku.packed_by_name}</p>
                               )}
                             </div>
-                            {sku.packed_by_name && (
-                              <p className="text-xs text-slate-500 mt-2">Packed by: {sku.packed_by_name}</p>
-                            )}
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )
                 ) : (
