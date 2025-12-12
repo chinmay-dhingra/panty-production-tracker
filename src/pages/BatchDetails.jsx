@@ -452,40 +452,52 @@ export default function BatchDetails() {
                   ) : (
                     <div className="space-y-3">
                       {skus.map((sku) => (
-                        <div key={sku.id} className="p-4 bg-violet-50 rounded-lg border border-violet-200">
-                          <div className="flex justify-between items-start mb-3">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Badge className="bg-violet-600">SKU Created</Badge>
-                                <span className="text-xs text-slate-400">Code: {sku.sku_code}</span>
+                        <div key={sku.id} className="border-2 border-violet-300 rounded-lg overflow-hidden">
+                          {/* SKU Header - Main Focus */}
+                          <div className="bg-violet-600 text-white p-3">
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-2">
+                                <Package className="w-4 h-4" />
+                                <span className="font-bold text-sm">FINAL SKU CREATED</span>
                               </div>
-                              <p className="font-semibold text-violet-900">
-                                {sku.series_name} - {sku.color_name} - {sku.size_name}
-                                {sku.material_name && ` - ${sku.material_name}`}
-                                {sku.style_name && ` - ${sku.style_name}`}
-                              </p>
-                              <p className="text-sm text-violet-700 mt-1">
-                                {sku.quantity} × {sku.pack_type?.replace("_", " ")}
-                              </p>
+                              <span className="text-xs bg-white/20 px-2 py-1 rounded">
+                                {format(new Date(sku.created_date), "MMM d, HH:mm")}
+                              </span>
                             </div>
-                            <div className="text-right text-xs text-slate-400">
-                              {sku.packed_by_name && <p>by {sku.packed_by_name}</p>}
-                              <p className="mt-1">{format(new Date(sku.created_date), "MMM d, HH:mm")}</p>
+                            <p className="text-xl font-bold mt-2">
+                              {sku.series_name} - {sku.color_name} - {sku.size_name}
+                              {sku.material_name && ` - ${sku.material_name}`}
+                              {sku.style_name && ` - ${sku.style_name}`}
+                            </p>
+                            <div className="flex items-center gap-3 mt-2">
+                              <Badge className="bg-white text-violet-600 font-bold">
+                                {sku.quantity} × {sku.pack_type?.replace("_", " ")}
+                              </Badge>
+                              <span className="text-sm">SKU Code: {sku.sku_code}</span>
                             </div>
                           </div>
-                          {sku.source_products && sku.source_products.length > 0 && (
-                            <div className="border-t border-violet-200 pt-3">
-                              <p className="text-xs text-violet-700 font-semibold mb-2">Raw Products Used:</p>
-                              <div className="space-y-1">
-                                {sku.source_products.map((source, idx) => (
-                                  <div key={idx} className="flex justify-between text-xs bg-white p-2 rounded">
-                                    <span className="text-slate-600">{source.product}</span>
-                                    <span className="font-semibold text-violet-700">{source.quantity} pcs</span>
+
+                          {/* Raw Products Consumed */}
+                          <div className="bg-violet-50 p-3">
+                            <p className="text-xs text-violet-700 font-bold mb-2 uppercase">Raw Products Consumed:</p>
+                            <div className="space-y-1">
+                              {sku.source_products && sku.source_products.length > 0 ? (
+                                sku.source_products.map((source, idx) => (
+                                  <div key={idx} className="flex justify-between items-center bg-white p-2 rounded border border-violet-200">
+                                    <span className="text-sm text-slate-700">{source.product}</span>
+                                    <Badge variant="outline" className="font-bold text-violet-700">
+                                      {source.quantity} pcs
+                                    </Badge>
                                   </div>
-                                ))}
-                              </div>
+                                ))
+                              ) : (
+                                <p className="text-xs text-slate-400">No source products recorded</p>
+                              )}
                             </div>
-                          )}
+                            {sku.packed_by_name && (
+                              <p className="text-xs text-slate-500 mt-2">Packed by: {sku.packed_by_name}</p>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
