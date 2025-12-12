@@ -58,59 +58,59 @@ export default function LabelPreview({ sku, config }) {
           }}
         >
           {/* Company Name - Centered at top */}
-          <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-            <div style={{ fontSize: `${config.fontSize + 8}px`, fontWeight: 'bold', letterSpacing: '1px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '6px' }}>
+            <div style={{ fontSize: `${config.fontSize + 6}px`, fontWeight: 'bold', letterSpacing: '2px' }}>
               SOVIV
             </div>
           </div>
 
           {/* Main Content - Left text + Right QR */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', flex: 1, gap: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flex: 1, gap: '12px' }}>
             {/* Left Side - Product Info */}
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', gap: '3px' }}>
               {config.showMRP && config.mrp && (
-                <div style={{ fontSize: `${config.fontSize + 4}px`, fontWeight: 'bold', marginBottom: '4px' }}>
+                <div style={{ fontSize: `${config.fontSize + 2}px`, fontWeight: 'bold', lineHeight: 1.2 }}>
                   MRP: {config.mrp}
                 </div>
               )}
-              <div style={{ fontSize: `${config.fontSize + 4}px`, fontWeight: 'bold', marginBottom: '4px' }}>
+              <div style={{ fontSize: `${config.fontSize + 2}px`, fontWeight: 'bold', lineHeight: 1.2 }}>
                 SIZE: {sku.size_name}
               </div>
-              <div style={{ fontSize: `${config.fontSize + 4}px`, fontWeight: 'bold', marginBottom: '4px' }}>
+              <div style={{ fontSize: `${config.fontSize + 2}px`, fontWeight: 'bold', lineHeight: 1.2 }}>
                 SKU: {sku.sku_code}
               </div>
-              <div style={{ fontSize: `${config.fontSize + 4}px`, fontWeight: 'bold', marginBottom: '4px' }}>
+              <div style={{ fontSize: `${config.fontSize + 2}px`, fontWeight: 'bold', lineHeight: 1.2 }}>
                 PACK: {sku.pack_type?.replace('_', ' ').toUpperCase()}
               </div>
-              <div style={{ fontSize: `${config.fontSize + 2}px`, fontWeight: 'bold', color: '#333' }}>
+              <div style={{ fontSize: `${config.fontSize + 1}px`, fontWeight: 'bold', lineHeight: 1.2 }}>
                 BATCH: {sku.batch_number}
               </div>
             </div>
 
             {/* Right Side - Data Matrix + SKU below */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', gap: '2px' }}>
               <canvas
                 ref={canvasRef}
                 style={{
-                  width: '60px',
-                  height: '60px',
+                  width: '55px',
+                  height: '55px',
                   imageRendering: 'pixelated'
                 }}
               />
-              <div style={{ fontSize: `${config.fontSize + 2}px`, fontWeight: 'bold', textAlign: 'center' }}>
+              <div style={{ fontSize: `${config.fontSize + 1}px`, fontWeight: 'bold', textAlign: 'center', lineHeight: 1 }}>
                 {sku.sku_code}
               </div>
             </div>
           </div>
 
           {/* Bottom Section - Company Info */}
-          <div style={{ marginTop: 'auto', paddingTop: '6px' }}>
-            <div style={{ fontSize: `${config.fontSize - 2}px`, marginBottom: '4px' }}>
+          <div style={{ marginTop: 'auto', paddingTop: '4px' }}>
+            <div style={{ fontSize: `${config.fontSize - 3}px`, marginBottom: '3px', lineHeight: 1.2 }}>
               <strong>Marketed and Sold by:</strong> SOVIV COLLECTIVES LLP
             </div>
-            <div style={{ borderTop: '2px solid #000', paddingTop: '4px' }}>
+            <div style={{ borderTop: '2px solid #000', paddingTop: '3px', marginTop: '2px' }}>
               {config.showWebsite && config.website && (
-                <div style={{ fontSize: `${config.fontSize}px`, fontWeight: 'bold', textAlign: 'center' }}>
+                <div style={{ fontSize: `${config.fontSize - 1}px`, fontWeight: 'bold', textAlign: 'center', lineHeight: 1.2 }}>
                   Website: {config.website}
                 </div>
               )}
