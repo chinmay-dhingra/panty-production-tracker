@@ -14,6 +14,7 @@ import EditStageRecord from "../components/batch/EditStageRecord";
 import BatchStatusControl from "../components/batch/BatchStatusControl";
 import DeleteBatch from "../components/batch/DeleteBatch";
 import EditBatchNumber from "../components/batch/EditBatchNumber";
+import EditPackagingSKU from "../components/batch/EditPackagingSKU";
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { format } from "date-fns";
@@ -97,6 +98,16 @@ export default function BatchDetails() {
   const deleteRecordMutation = useMutation({
     mutationFn: (id) => base44.entities.StageRecord.delete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["stageRecords", batchId] })
+  });
+
+  const updateSKUMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.PackagingSKU.update(id, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["skus", batchId] })
+  });
+
+  const deleteSKUMutation = useMutation({
+    mutationFn: (id) => base44.entities.PackagingSKU.delete(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["skus", batchId] })
   });
 
   const deleteBatchMutation = useMutation({
@@ -467,9 +478,23 @@ export default function BatchDetails() {
                                   <Package className="w-4 h-4" />
                                   <span className="font-bold text-sm">FINAL SKU CREATED</span>
                                 </div>
-                                <span className="text-xs bg-white/20 px-2 py-1 rounded">
-                                  {format(new Date(sku.created_date), "MMM d, HH:mm")}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs bg-white/20 px-2 py-1 rounded flex items-center gap-1">
+                                    <Copy className="w-3 h-3" />
+                                    ID: {sku.id.slice(0, 8)}
+                                  </span>
+                                  <span className="text-xs bg-white/20 px-2 py-1 rounded">
+                                    {format(new Date(sku.created_date), "MMM d, HH:mm")}
+                                  </span>
+                                  <EditPackagingSKU
+                                    sku={sku}
+                                    workers={workers}
+                                    sizes={sizes}
+                                    onUpdate={(id, data) => updateSKUMutation.mutate({ id, data })}
+                                    onDelete={(id) => deleteSKUMutation.mutate(id)}
+                                    isLoading={updateSKUMutation.isPending || deleteSKUMutation.isPending}
+                                  />
+                                </div>
                               </div>
                               <p className="text-2xl font-bold mt-2 mb-1">
                                 {sku.sku_code}
