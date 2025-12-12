@@ -452,22 +452,40 @@ export default function BatchDetails() {
                   ) : (
                     <div className="space-y-3">
                       {skus.map((sku) => (
-                        <div key={sku.id} className="p-4 bg-violet-50 rounded-lg">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <div className="flex items-center gap-2 mb-1">
-                                <Badge variant="outline">{sku.series_name}</Badge>
-                                <Badge variant="outline">{sku.color_name}</Badge>
-                                <Badge variant="outline">{sku.size_name}</Badge>
+                        <div key={sku.id} className="p-4 bg-violet-50 rounded-lg border border-violet-200">
+                          <div className="flex justify-between items-start mb-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Badge className="bg-violet-600">SKU Created</Badge>
+                                <span className="text-xs text-slate-400">Code: {sku.sku_code}</span>
                               </div>
-                              <p className="text-sm text-slate-600 mt-2">
-                                {sku.quantity} × {sku.pack_type?.replace("_", " ")} = {sku.total_pieces} pcs
+                              <p className="font-semibold text-violet-900">
+                                {sku.series_name} - {sku.color_name} - {sku.size_name}
+                                {sku.material_name && ` - ${sku.material_name}`}
+                                {sku.style_name && ` - ${sku.style_name}`}
+                              </p>
+                              <p className="text-sm text-violet-700 mt-1">
+                                {sku.quantity} × {sku.pack_type?.replace("_", " ")}
                               </p>
                             </div>
                             <div className="text-right text-xs text-slate-400">
                               {sku.packed_by_name && <p>by {sku.packed_by_name}</p>}
+                              <p className="mt-1">{format(new Date(sku.created_date), "MMM d, HH:mm")}</p>
                             </div>
                           </div>
+                          {sku.source_products && sku.source_products.length > 0 && (
+                            <div className="border-t border-violet-200 pt-3">
+                              <p className="text-xs text-violet-700 font-semibold mb-2">Raw Products Used:</p>
+                              <div className="space-y-1">
+                                {sku.source_products.map((source, idx) => (
+                                  <div key={idx} className="flex justify-between text-xs bg-white p-2 rounded">
+                                    <span className="text-slate-600">{source.product}</span>
+                                    <span className="font-semibold text-violet-700">{source.quantity} pcs</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -578,7 +596,7 @@ export default function BatchDetails() {
               </CardContent>
             </Card>
 
-            {/* Packaging Summary */}
+            {/* SKU-Specific Summary */}
             {skus.length > 0 && (
               <Card className="border-0 shadow-lg">
                 <CardHeader>
@@ -589,16 +607,25 @@ export default function BatchDetails() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {["single", "2_pack", "3_pack", "4_pack", "6_pack", "8_pack"].map(packType => {
-                      const count = skus.filter(s => s.pack_type === packType).reduce((sum, s) => sum + s.quantity, 0);
-                      if (count === 0) return null;
-                      return (
-                        <div key={packType} className="flex justify-between items-center p-2 bg-violet-50 rounded">
-                          <span className="capitalize">{packType.replace("_", " ")}</span>
-                          <Badge className="bg-violet-600">{count} packs</Badge>
+                    {skus.map((sku) => (
+                      <div key={sku.id} className="p-3 bg-violet-50 rounded-lg border border-violet-200">
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex-1">
+                            <p className="font-semibold text-sm text-violet-900">
+                              {sku.series_name} - {sku.color_name} - {sku.size_name}
+                              {sku.material_name && ` - ${sku.material_name}`}
+                              {sku.style_name && ` - ${sku.style_name}`}
+                            </p>
+                            <p className="text-xs text-violet-700 mt-1">
+                              {sku.pack_type?.replace("_", " ")} • SKU: {sku.sku_code}
+                            </p>
+                          </div>
+                          <Badge className="bg-violet-600 shrink-0">
+                            {sku.quantity} packs
+                          </Badge>
                         </div>
-                      );
-                    })}
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
