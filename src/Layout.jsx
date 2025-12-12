@@ -12,6 +12,7 @@ const navItems = [
   { name: "Inventory", icon: Package, page: "Inventory" },
   { name: "Workers", icon: Users, page: "Workers" },
   { name: "Reports", icon: BarChart3, page: "Reports" },
+  { name: "Label Printing", icon: Package, page: "LabelPrinting" },
   { name: "Settings", icon: Settings, page: "Settings" }
 ];
 
