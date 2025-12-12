@@ -69,6 +69,11 @@ export default function BatchDetails() {
     queryFn: () => base44.entities.Worker.filter({ is_active: true })
   });
 
+  const { data: sizes = [] } = useQuery({
+    queryKey: ["sizes"],
+    queryFn: () => base44.entities.ProductSize.filter({ is_active: true })
+  });
+
   const createRecordMutation = useMutation({
     mutationFn: (data) => base44.entities.StageRecord.create(data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["stageRecords", batchId] })
@@ -123,43 +128,77 @@ export default function BatchDetails() {
   };
 
   const handlePackagingSubmit = async (data) => {
+    // Get first source product for series/color/material/style info
+    const firstSource = data.source_products[0];
+    
     // Create SKU record
     await createSKUMutation.mutateAsync({
       batch_id: batchId,
       batch_number: batch.batch_number,
-      ...data
+      series_id: firstSource.series_id,
+      series_name: firstSource.series_name,
+      color_id: firstSource.color_id,
+      color_name: firstSource.color_name,
+      size_id: data.size_id,
+      size_name: data.size_name,
+      material_id: firstSource.material_id,
+      material_name: firstSource.material_name,
+      style_id: firstSource.style_id,
+      style_name: firstSource.style_name,
+      pack_type: data.pack_type,
+      quantity: data.quantity,
+      total_pieces: data.total_pieces,
+      packed_by: data.packed_by,
+      packed_by_name: data.packed_by_name,
+      sku_code: data.sku_code
     });
 
-    // Update inventory - add to stock
+    // Deduct raw products from inventory
     try {
-      const existingInventory = await base44.entities.Inventory.filter({
-        series_id: data.series_id,
-        color_id: data.color_id,
+      for (const sourceProduct of data.source_products) {
+        const existingInventory = await base44.entities.Inventory.filter({
+          series_id: sourceProduct.series_id,
+          color_id: sourceProduct.color_id,
+          size_id: sourceProduct.size_id,
+          material_id: sourceProduct.material_id || "",
+          style_id: sourceProduct.style_id || ""
+        });
+
+        if (existingInventory.length > 0) {
+          const current = existingInventory[0];
+          await base44.entities.Inventory.update(current.id, {
+            stock_count: Math.max(0, (current.stock_count || 0) - sourceProduct.quantity)
+          });
+        }
+      }
+
+      // Add SKU to inventory
+      const skuInventory = await base44.entities.Inventory.filter({
+        series_id: firstSource.series_id,
+        color_id: firstSource.color_id,
         size_id: data.size_id,
-        material_id: data.material_id || "",
-        style_id: data.style_id || ""
+        material_id: firstSource.material_id || "",
+        style_id: firstSource.style_id || ""
       });
 
-      if (existingInventory.length > 0) {
-        // Update existing inventory
-        const current = existingInventory[0];
+      if (skuInventory.length > 0) {
+        const current = skuInventory[0];
         await base44.entities.Inventory.update(current.id, {
-          stock_count: (current.stock_count || 0) + data.total_pieces
+          stock_count: (current.stock_count || 0) + data.quantity
         });
       } else {
-        // Create new inventory record
         await base44.entities.Inventory.create({
-          series_id: data.series_id,
-          series_name: data.series_name,
-          color_id: data.color_id,
-          color_name: data.color_name,
+          series_id: firstSource.series_id,
+          series_name: firstSource.series_name,
+          color_id: firstSource.color_id,
+          color_name: firstSource.color_name,
           size_id: data.size_id,
           size_name: data.size_name,
-          material_id: data.material_id || "",
-          material_name: data.material_name || "",
-          style_id: data.style_id || "",
-          style_name: data.style_name || "",
-          stock_count: data.total_pieces,
+          material_id: firstSource.material_id || "",
+          material_name: firstSource.material_name || "",
+          style_id: firstSource.style_id || "",
+          style_name: firstSource.style_name || "",
+          stock_count: data.quantity,
           reorder_point: 0
         });
       }
@@ -384,6 +423,7 @@ export default function BatchDetails() {
                 workers={workers}
                 products={products}
                 availableStock={calculatePackagingStock()}
+                sizes={sizes}
                 onSubmit={handlePackagingSubmit}
                 isLoading={createSKUMutation.isPending}
               />

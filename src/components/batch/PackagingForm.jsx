@@ -27,7 +27,7 @@ const PACK_TYPES = [
   { value: "8_pack", label: "8 Pack", pieces: 8 }
 ];
 
-export default function PackagingForm({ workers, products, availableStock, onSubmit, isLoading }) {
+export default function PackagingForm({ workers, products, availableStock, onSubmit, isLoading, sizes }) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [formData, setFormData] = useState({
     selected_products: [],
@@ -35,7 +35,7 @@ export default function PackagingForm({ workers, products, availableStock, onSub
     quantity: "",
     packed_by: "",
     sku_code: "",
-    sku_product: ""
+    sku_size_id: ""
   });
   const [productQuantities, setProductQuantities] = useState({});
 
@@ -88,8 +88,8 @@ export default function PackagingForm({ workers, products, availableStock, onSub
       return;
     }
 
-    if (!formData.sku_product) {
-      alert("Please select which product this SKU represents");
+    if (!formData.sku_size_id) {
+      alert("Please select the size for this SKU");
       return;
     }
 
@@ -98,24 +98,17 @@ export default function PackagingForm({ workers, products, availableStock, onSub
 
   const confirmSubmit = async () => {
     const worker = workers.find(w => w.id === formData.packed_by);
-    const skuProduct = products.find(p => 
-      `${p.series_id}-${p.color_id}-${p.size_id}-${p.material_id || ''}-${p.style_id || ''}` === formData.sku_product
-    );
+    const skuSize = sizes.find(s => s.id === formData.sku_size_id);
 
-    if (!skuProduct) return;
+    if (!skuSize) return;
 
-    // Create single entry for the SKU
+    // Get first product for series/color/material/style info
+    const firstProduct = products[0];
+
+    // Submit data with SKU details and source products
     await onSubmit({
-      series_id: skuProduct.series_id,
-      series_name: skuProduct.series_name,
-      color_id: skuProduct.color_id,
-      color_name: skuProduct.color_name,
-      size_id: skuProduct.size_id,
-      size_name: skuProduct.size_name,
-      material_id: skuProduct.material_id || "",
-      material_name: skuProduct.material_name || "",
-      style_id: skuProduct.style_id || "",
-      style_name: skuProduct.style_name || "",
+      size_id: skuSize.id,
+      size_name: skuSize.name,
       pack_type: formData.pack_type,
       quantity: parseInt(formData.quantity),
       total_pieces: requiredPieces,
@@ -127,7 +120,16 @@ export default function PackagingForm({ workers, products, availableStock, onSub
           `${prod.series_id}-${prod.color_id}-${prod.size_id}-${prod.material_id || ''}-${prod.style_id || ''}` === productKey
         );
         return {
-          product: `${p.series_name} - ${p.color_name} - ${p.size_name}${p.material_name ? ` - ${p.material_name}` : ''}${p.style_name ? ` - ${p.style_name}` : ''}`,
+          series_id: p.series_id,
+          series_name: p.series_name,
+          color_id: p.color_id,
+          color_name: p.color_name,
+          size_id: p.size_id,
+          size_name: p.size_name,
+          material_id: p.material_id || "",
+          material_name: p.material_name || "",
+          style_id: p.style_id || "",
+          style_name: p.style_name || "",
           quantity: parseInt(productQuantities[productKey]) || 0
         };
       })
@@ -139,7 +141,7 @@ export default function PackagingForm({ workers, products, availableStock, onSub
       quantity: "",
       packed_by: "",
       sku_code: "",
-      sku_product: ""
+      sku_size_id: ""
     });
     setProductQuantities({});
     setShowConfirm(false);
@@ -168,12 +170,9 @@ export default function PackagingForm({ workers, products, availableStock, onSub
     });
   };
 
-  const getSkuProductDisplay = () => {
-    const product = products.find(p => 
-      `${p.series_id}-${p.color_id}-${p.size_id}-${p.material_id || ''}-${p.style_id || ''}` === formData.sku_product
-    );
-    if (!product) return "";
-    return `${product.series_name} - ${product.color_name} - ${product.size_name}${product.material_name ? ` - ${product.material_name}` : ''}${product.style_name ? ` - ${product.style_name}` : ''}`;
+  const getSkuSizeDisplay = () => {
+    const size = sizes.find(s => s.id === formData.sku_size_id);
+    return size ? size.name : "";
   };
 
   return (
@@ -238,27 +237,22 @@ export default function PackagingForm({ workers, products, availableStock, onSub
             />
           </div>
 
-          {/* SKU Product Specification */}
+          {/* SKU Size Selection */}
           <div className="space-y-2">
-            <Label>This SKU Represents *</Label>
+            <Label>SKU Size *</Label>
             <Select
-              value={formData.sku_product}
-              onValueChange={(value) => setFormData({ ...formData, sku_product: value })}
+              value={formData.sku_size_id}
+              onValueChange={(value) => setFormData({ ...formData, sku_size_id: value })}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select which product this SKU is" />
+                <SelectValue placeholder="Select size for this SKU" />
               </SelectTrigger>
               <SelectContent>
-                {products.map((p) => {
-                  const key = `${p.series_id}-${p.color_id}-${p.size_id}-${p.material_id || ''}-${p.style_id || ''}`;
-                  return (
-                    <SelectItem key={key} value={key}>
-                      {p.series_name} - {p.color_name} - {p.size_name}
-                      {p.material_name && ` - ${p.material_name}`}
-                      {p.style_name && ` - ${p.style_name}`}
-                    </SelectItem>
-                  );
-                })}
+                {sizes.map((size) => (
+                  <SelectItem key={size.id} value={size.id}>
+                    {size.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -337,7 +331,7 @@ export default function PackagingForm({ workers, products, availableStock, onSub
 
           <Button
             type="submit"
-            disabled={isLoading || formData.selected_products.length === 0 || !formData.pack_type || !formData.quantity || !formData.packed_by || piecesMismatch || !formData.sku_code.trim() || !formData.sku_product}
+            disabled={isLoading || formData.selected_products.length === 0 || !formData.pack_type || !formData.quantity || !formData.packed_by || piecesMismatch || !formData.sku_code.trim() || !formData.sku_size_id}
             className="w-full bg-violet-600 hover:bg-violet-700"
           >
             <Eye className="w-4 h-4 mr-2" /> Preview & Confirm
@@ -370,8 +364,8 @@ export default function PackagingForm({ workers, products, availableStock, onSub
                 <p className="font-bold text-lg">{formData.sku_code}</p>
               </div>
               <div className="bg-blue-50 p-2 rounded border border-blue-200">
-                <p className="text-xs text-blue-700">SKU Product</p>
-                <p className="font-semibold text-sm">{getSkuProductDisplay()}</p>
+                <p className="text-xs text-blue-700">SKU Size</p>
+                <p className="font-semibold text-lg">{getSkuSizeDisplay()}</p>
               </div>
               <div className="bg-slate-100 p-2 rounded">
                 <p className="text-xs text-slate-600">Worker</p>
