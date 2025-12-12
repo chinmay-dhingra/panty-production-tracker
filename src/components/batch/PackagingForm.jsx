@@ -368,43 +368,53 @@ export default function PackagingForm({ workers, products, availableStock, onSub
               <AlertDialogTitle>Confirm Packaging</AlertDialogTitle>
             </AlertDialogHeader>
             <div className="space-y-2">
-              <div className="bg-violet-600 text-white p-2 rounded text-center">
-                <p className="text-sm font-bold">Packaging Stage</p>
+              <div className="bg-violet-600 text-white p-3 rounded text-center">
+                <p className="text-xs font-bold uppercase">Creating Final SKU Bundle</p>
               </div>
-              <div className="bg-violet-50 p-2 rounded border border-violet-200">
-                <p className="text-xs text-violet-700">Pack Type</p>
-                <p className="font-semibold text-sm">{getPackTypeLabel()}</p>
+              
+              {/* Final SKU Info - Highlighted */}
+              <div className="bg-violet-100 border-2 border-violet-400 p-3 rounded">
+                <p className="text-xs text-violet-700 font-bold mb-1">SKU Code</p>
+                <p className="text-2xl font-bold text-violet-900">{formData.sku_code}</p>
               </div>
-              <div className="bg-violet-50 p-2 rounded border border-violet-200">
-                <p className="text-xs text-violet-700">Quantity</p>
-                <p className="font-semibold text-sm">{formData.quantity} packs</p>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-violet-50 p-2 rounded border border-violet-200">
+                  <p className="text-xs text-violet-700">Size</p>
+                  <p className="font-bold text-violet-900">{getSkuSizeDisplay()}</p>
+                </div>
+                <div className="bg-violet-50 p-2 rounded border border-violet-200">
+                  <p className="text-xs text-violet-700">Pack Type</p>
+                  <p className="font-bold text-violet-900">{getPackTypeLabel()}</p>
+                </div>
               </div>
+
+              <div className="bg-violet-100 border-2 border-violet-400 p-3 rounded text-center">
+                <p className="text-xs text-violet-700 font-bold">Number of Bundles</p>
+                <p className="text-3xl font-bold text-violet-900">{formData.quantity}</p>
+              </div>
+
               <div className="bg-emerald-100 p-2 rounded text-center border border-emerald-200">
-                <p className="text-xs text-emerald-700">Total Pieces</p>
+                <p className="text-xs text-emerald-700">Total Raw Pieces Needed</p>
                 <p className="text-xl font-bold text-emerald-700">{requiredPieces} pcs</p>
               </div>
-              <div className="bg-blue-50 p-2 rounded border border-blue-200">
-                <p className="text-xs text-blue-700">SKU Code</p>
-                <p className="font-bold text-lg">{formData.sku_code}</p>
-              </div>
-              <div className="bg-blue-50 p-2 rounded border border-blue-200">
-                <p className="text-xs text-blue-700">SKU Size</p>
-                <p className="font-semibold text-lg">{getSkuSizeDisplay()}</p>
-              </div>
-              <div className="bg-slate-100 p-2 rounded">
-                <p className="text-xs text-slate-600">Worker</p>
-                <p className="font-semibold text-sm">{getWorkerDisplay()}</p>
-              </div>
-              <div className="bg-slate-50 p-2 rounded border">
-                <p className="text-xs text-slate-600 mb-1">Source Products</p>
+
+              {/* Raw Products Section */}
+              <div className="bg-slate-50 p-3 rounded border-2 border-slate-300">
+                <p className="text-xs text-slate-600 font-bold mb-2 uppercase">Raw Products Consumed:</p>
                 <div className="space-y-1">
                   {getSelectedProductsDisplay().map((item, idx) => (
-                    <div key={idx} className="flex justify-between text-xs">
-                      <span>{item.name}</span>
-                      <span className="font-semibold">{item.qty} pcs</span>
+                    <div key={idx} className="flex justify-between text-xs bg-white p-2 rounded border">
+                      <span className="text-slate-700">{item.name}</span>
+                      <span className="font-bold text-slate-900">{item.qty} pcs</span>
                     </div>
                   ))}
                 </div>
+              </div>
+
+              <div className="bg-slate-100 p-2 rounded">
+                <p className="text-xs text-slate-600">Packed By</p>
+                <p className="font-semibold text-sm">{getWorkerDisplay()}</p>
               </div>
             </div>
             <AlertDialogFooter className="mt-3">
