@@ -17,10 +17,22 @@ export default function LabelPrinting() {
     width: 50, // mm
     height: 25, // mm
     mrp: "",
+    website: "",
     logo: null,
     fontSize: 8,
     showBorder: true,
-    preset: "standard"
+    preset: "standard",
+    dataMatrixFields: {
+      sku: true,
+      batch: false,
+      size: false,
+      pack: false
+    },
+    showMRP: true,
+    showWebsite: false,
+    showLogo: true,
+    mrpFontSize: 10,
+    layout: "compact" // compact, detailed, minimal
   });
 
   const { data: skus = [], isLoading } = useQuery({

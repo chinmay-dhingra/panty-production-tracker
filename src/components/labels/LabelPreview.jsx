@@ -12,8 +12,14 @@ export default function LabelPreview({ sku, config }) {
 
   const generateDataMatrix = () => {
     try {
-      // Generate Data Matrix with SKU and batch info
-      const dataString = `SKU:${sku.sku_code}|BATCH:${sku.batch_number}|SIZE:${sku.size_name}|PACK:${sku.pack_type}`;
+      // Build data string based on selected fields
+      const parts = [];
+      if (config.dataMatrixFields.sku) parts.push(`SKU:${sku.sku_code}`);
+      if (config.dataMatrixFields.batch) parts.push(`BATCH:${sku.batch_number}`);
+      if (config.dataMatrixFields.size) parts.push(`SIZE:${sku.size_name}`);
+      if (config.dataMatrixFields.pack) parts.push(`PACK:${sku.pack_type}`);
+      
+      const dataString = parts.length > 0 ? parts.join('|') : sku.sku_code;
       
       bwipjs.toCanvas(canvasRef.current, {
         bcid: 'datamatrix',
@@ -51,21 +57,21 @@ export default function LabelPreview({ sku, config }) {
           }}
         >
           {/* Top Section - Logo & MRP */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            {config.logo && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2px' }}>
+            {config.showLogo && config.logo && (
               <img
                 src={config.logo}
                 alt="Logo"
                 style={{
-                  maxWidth: '30px',
-                  maxHeight: '15px',
+                  maxWidth: '35px',
+                  maxHeight: '18px',
                   objectFit: 'contain'
                 }}
               />
             )}
-            {config.mrp && (
+            {config.showMRP && config.mrp && (
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: `${config.fontSize - 2}px`, fontWeight: 'bold' }}>
+                <div style={{ fontSize: `${config.mrpFontSize}px`, fontWeight: 'bold', color: '#000' }}>
                   MRP: ₹{config.mrp}
                 </div>
               </div>
@@ -75,37 +81,80 @@ export default function LabelPreview({ sku, config }) {
           {/* Middle Section - SKU Info */}
           <div style={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '4px' }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: `${config.fontSize + 2}px`, fontWeight: 'bold', lineHeight: 1.2 }}>
-                {sku.sku_code}
-              </div>
-              <div style={{ fontSize: `${config.fontSize - 1}px`, marginTop: '2px', lineHeight: 1.1 }}>
-                Size: {sku.size_name}
-              </div>
-              <div style={{ fontSize: `${config.fontSize - 1}px`, lineHeight: 1.1 }}>
-                Pack: {sku.pack_type?.replace('_', ' ')}
-              </div>
-              <div style={{ fontSize: `${config.fontSize - 2}px`, marginTop: '2px', color: '#666', lineHeight: 1.1 }}>
-                Batch: {sku.batch_number}
-              </div>
+              {config.layout === 'minimal' ? (
+                <>
+                  <div style={{ fontSize: `${config.fontSize + 2}px`, fontWeight: 'bold', lineHeight: 1.2 }}>
+                    {sku.sku_code}
+                  </div>
+                  <div style={{ fontSize: `${config.fontSize}px`, marginTop: '2px', lineHeight: 1.1 }}>
+                    Size: {sku.size_name}
+                  </div>
+                </>
+              ) : config.layout === 'detailed' ? (
+                <>
+                  <div style={{ fontSize: `${config.fontSize + 2}px`, fontWeight: 'bold', lineHeight: 1.2 }}>
+                    {sku.sku_code}
+                  </div>
+                  <div style={{ fontSize: `${config.fontSize - 1}px`, marginTop: '2px', lineHeight: 1.1 }}>
+                    Size: {sku.size_name}
+                  </div>
+                  <div style={{ fontSize: `${config.fontSize - 1}px`, lineHeight: 1.1 }}>
+                    Pack: {sku.pack_type?.replace('_', ' ')}
+                  </div>
+                  <div style={{ fontSize: `${config.fontSize - 2}px`, marginTop: '2px', color: '#666', lineHeight: 1.1 }}>
+                    Batch: {sku.batch_number}
+                  </div>
+                  {config.showWebsite && config.website && (
+                    <div style={{ fontSize: `${config.fontSize - 2}px`, color: '#666', lineHeight: 1.1 }}>
+                      {config.website}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: `${config.fontSize + 2}px`, fontWeight: 'bold', lineHeight: 1.2 }}>
+                    {sku.sku_code}
+                  </div>
+                  <div style={{ fontSize: `${config.fontSize - 1}px`, marginTop: '2px', lineHeight: 1.1 }}>
+                    Size: {sku.size_name} • {sku.pack_type?.replace('_', ' ')}
+                  </div>
+                  <div style={{ fontSize: `${config.fontSize - 2}px`, marginTop: '2px', color: '#666', lineHeight: 1.1 }}>
+                    Batch: {sku.batch_number}
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Data Matrix Code */}
             <canvas
               ref={canvasRef}
               style={{
-                maxWidth: '40px',
-                maxHeight: '40px',
+                maxWidth: '45px',
+                maxHeight: '45px',
                 imageRendering: 'pixelated'
               }}
             />
           </div>
+
+          {/* Bottom Section - Website (if not in detailed mode) */}
+          {config.showWebsite && config.website && config.layout !== 'detailed' && (
+            <div style={{ fontSize: `${config.fontSize - 2}px`, color: '#666', textAlign: 'center', borderTop: '1px solid #e5e7eb', paddingTop: '2px' }}>
+              {config.website}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Label Info */}
       <div className="text-sm text-slate-600 space-y-1">
         <p>Label Size: {config.width}mm × {config.height}mm</p>
-        <p>Data Matrix Contains: SKU, Batch, Size, Pack Type</p>
+        <p>Data Matrix Contains: {
+          Object.entries(config.dataMatrixFields)
+            .filter(([_, enabled]) => enabled)
+            .map(([field, _]) => field.toUpperCase())
+            .join(', ') || 'No data selected'
+        }</p>
+        <p className="text-xs text-slate-500">Layout: {config.layout}</p>
       </div>
 
       {/* Print Styles */}
