@@ -49,99 +49,73 @@ export default function LabelPreview({ sku, config }) {
             width: `${widthPx}px`,
             height: `${heightPx}px`,
             border: config.showBorder ? '2px solid #000' : 'none',
-            padding: '4px',
+            padding: '8px',
             position: 'relative',
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'space-between'
+            fontFamily: 'Arial, sans-serif',
+            boxSizing: 'border-box'
           }}
         >
-          {/* Top Section - Logo & MRP */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2px' }}>
-            {config.showLogo && config.logo && (
-              <img
-                src={config.logo}
-                alt="Logo"
+          {/* Company Name - Centered at top */}
+          <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+            <div style={{ fontSize: `${config.fontSize + 8}px`, fontWeight: 'bold', letterSpacing: '1px' }}>
+              SOVIV
+            </div>
+          </div>
+
+          {/* Main Content - Left text + Right QR */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', flex: 1, gap: '8px' }}>
+            {/* Left Side - Product Info */}
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
+              {config.showMRP && config.mrp && (
+                <div style={{ fontSize: `${config.fontSize + 4}px`, fontWeight: 'bold', marginBottom: '4px' }}>
+                  MRP: {config.mrp}
+                </div>
+              )}
+              <div style={{ fontSize: `${config.fontSize + 4}px`, fontWeight: 'bold', marginBottom: '4px' }}>
+                SIZE: {sku.size_name}
+              </div>
+              <div style={{ fontSize: `${config.fontSize + 4}px`, fontWeight: 'bold', marginBottom: '4px' }}>
+                SKU: {sku.sku_code}
+              </div>
+              <div style={{ fontSize: `${config.fontSize + 4}px`, fontWeight: 'bold', marginBottom: '4px' }}>
+                PACK: {sku.pack_type?.replace('_', ' ').toUpperCase()}
+              </div>
+              <div style={{ fontSize: `${config.fontSize + 2}px`, fontWeight: 'bold', color: '#333' }}>
+                BATCH: {sku.batch_number}
+              </div>
+            </div>
+
+            {/* Right Side - Data Matrix + SKU below */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+              <canvas
+                ref={canvasRef}
                 style={{
-                  maxWidth: '35px',
-                  maxHeight: '18px',
-                  objectFit: 'contain'
+                  width: '60px',
+                  height: '60px',
+                  imageRendering: 'pixelated'
                 }}
               />
-            )}
-            {config.showMRP && config.mrp && (
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: `${config.mrpFontSize}px`, fontWeight: 'bold', color: '#000' }}>
-                  MRP: ₹{config.mrp}
-                </div>
+              <div style={{ fontSize: `${config.fontSize + 2}px`, fontWeight: 'bold', textAlign: 'center' }}>
+                {sku.sku_code}
               </div>
-            )}
+            </div>
           </div>
 
-          {/* Middle Section - SKU Info */}
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '4px' }}>
-            <div style={{ flex: 1 }}>
-              {config.layout === 'minimal' ? (
-                <>
-                  <div style={{ fontSize: `${config.fontSize + 2}px`, fontWeight: 'bold', lineHeight: 1.2 }}>
-                    {sku.sku_code}
-                  </div>
-                  <div style={{ fontSize: `${config.fontSize}px`, marginTop: '2px', lineHeight: 1.1 }}>
-                    Size: {sku.size_name}
-                  </div>
-                </>
-              ) : config.layout === 'detailed' ? (
-                <>
-                  <div style={{ fontSize: `${config.fontSize + 2}px`, fontWeight: 'bold', lineHeight: 1.2 }}>
-                    {sku.sku_code}
-                  </div>
-                  <div style={{ fontSize: `${config.fontSize - 1}px`, marginTop: '2px', lineHeight: 1.1 }}>
-                    Size: {sku.size_name}
-                  </div>
-                  <div style={{ fontSize: `${config.fontSize - 1}px`, lineHeight: 1.1 }}>
-                    Pack: {sku.pack_type?.replace('_', ' ')}
-                  </div>
-                  <div style={{ fontSize: `${config.fontSize - 2}px`, marginTop: '2px', color: '#666', lineHeight: 1.1 }}>
-                    Batch: {sku.batch_number}
-                  </div>
-                  {config.showWebsite && config.website && (
-                    <div style={{ fontSize: `${config.fontSize - 2}px`, color: '#666', lineHeight: 1.1 }}>
-                      {config.website}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <>
-                  <div style={{ fontSize: `${config.fontSize + 2}px`, fontWeight: 'bold', lineHeight: 1.2 }}>
-                    {sku.sku_code}
-                  </div>
-                  <div style={{ fontSize: `${config.fontSize - 1}px`, marginTop: '2px', lineHeight: 1.1 }}>
-                    Size: {sku.size_name} • {sku.pack_type?.replace('_', ' ')}
-                  </div>
-                  <div style={{ fontSize: `${config.fontSize - 2}px`, marginTop: '2px', color: '#666', lineHeight: 1.1 }}>
-                    Batch: {sku.batch_number}
-                  </div>
-                </>
+          {/* Bottom Section - Company Info */}
+          <div style={{ marginTop: 'auto', paddingTop: '6px' }}>
+            <div style={{ fontSize: `${config.fontSize - 2}px`, marginBottom: '4px' }}>
+              <strong>Marketed and Sold by:</strong> SOVIV COLLECTIVES LLP
+            </div>
+            <div style={{ borderTop: '2px solid #000', paddingTop: '4px' }}>
+              {config.showWebsite && config.website && (
+                <div style={{ fontSize: `${config.fontSize}px`, fontWeight: 'bold', textAlign: 'center' }}>
+                  Website: {config.website}
+                </div>
               )}
             </div>
-
-            {/* Data Matrix Code */}
-            <canvas
-              ref={canvasRef}
-              style={{
-                maxWidth: '45px',
-                maxHeight: '45px',
-                imageRendering: 'pixelated'
-              }}
-            />
           </div>
-
-          {/* Bottom Section - Website (if not in detailed mode) */}
-          {config.showWebsite && config.website && config.layout !== 'detailed' && (
-            <div style={{ fontSize: `${config.fontSize - 2}px`, color: '#666', textAlign: 'center', borderTop: '1px solid #e5e7eb', paddingTop: '2px' }}>
-              {config.website}
-            </div>
-          )}
         </div>
       </div>
 
