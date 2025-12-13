@@ -18,9 +18,11 @@ import {
 } from "@/components/ui/dialog";
 import { 
   Users, Plus, Loader2, User, Pencil, Search, 
-  UserCheck, UserX, BarChart3
+  UserCheck, UserX, BarChart3, Calendar, Layers
 } from "lucide-react";
 import WorkerPerformance from "../components/workers/WorkerPerformance";
+import DailyPerformance from "../components/workers/DailyPerformance";
+import StageWisePerformance from "../components/workers/StageWisePerformance";
 
 
 
@@ -191,6 +193,12 @@ export default function Workers() {
             <TabsTrigger value="performance" className="gap-2">
               <BarChart3 className="w-4 h-4" /> Performance
             </TabsTrigger>
+            <TabsTrigger value="daily" className="gap-2">
+              <Calendar className="w-4 h-4" /> Daily Tracking
+            </TabsTrigger>
+            <TabsTrigger value="stagewise" className="gap-2">
+              <Layers className="w-4 h-4" /> Stage-wise
+            </TabsTrigger>
           </TabsList>
 
           {/* Workers List Tab */}
@@ -314,6 +322,16 @@ export default function Workers() {
           {/* Performance Tab */}
           <TabsContent value="performance">
             <WorkerPerformance workers={workers} stageRecords={stageRecords} skus={skus} />
+          </TabsContent>
+
+          {/* Daily Performance Tab */}
+          <TabsContent value="daily">
+            <DailyPerformance workers={workers} stageRecords={stageRecords} skus={skus} />
+          </TabsContent>
+
+          {/* Stage-wise Performance Tab */}
+          <TabsContent value="stagewise">
+            <StageWisePerformance workers={workers} stageRecords={stageRecords} skus={skus} />
           </TabsContent>
         </Tabs>
       </div>
