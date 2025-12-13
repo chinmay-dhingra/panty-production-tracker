@@ -15,6 +15,7 @@ import BatchStatusControl from "../components/batch/BatchStatusControl";
 import DeleteBatch from "../components/batch/DeleteBatch";
 import EditBatchNumber from "../components/batch/EditBatchNumber";
 import EditPackagingSKU from "../components/batch/EditPackagingSKU";
+import CountedItemsList from "../components/batch/CountedItemsList";
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { format } from "date-fns";
@@ -426,6 +427,13 @@ export default function BatchDetails() {
             );
           })}
         </div>
+
+        {/* Counted Items Summary - Show at top when counting has data */}
+        {stageRecords.some(r => r.stage === "counting") && (
+          <div className="mb-6">
+            <CountedItemsList stageRecords={stageRecords} />
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Entry Form */}
