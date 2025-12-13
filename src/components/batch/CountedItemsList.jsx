@@ -1,8 +1,13 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Layers } from "lucide-react";
+import { CheckCircle, Download, Loader2 } from "lucide-react";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
 
-export default function CountedItemsList({ stageRecords }) {
+export default function CountedItemsList({ stageRecords, batchNumber }) {
+  const [exporting, setExporting] = useState(false);
   // Get counting stage records and aggregate by product
   const countingRecords = stageRecords.filter(r => r.stage === "counting");
   
@@ -38,13 +43,84 @@ export default function CountedItemsList({ stageRecords }) {
   const productList = Object.values(productCounts).sort((a, b) => b.totalCounted - a.totalCounted);
   const grandTotal = productList.reduce((sum, p) => sum + p.totalCounted, 0);
 
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const doc = new jsPDF();
+      
+      // Title
+      doc.setFontSize(18);
+      doc.setFont(undefined, "bold");
+      doc.text("Counted Items Report", 14, 20);
+      
+      // Batch info
+      doc.setFontSize(11);
+      doc.setFont(undefined, "normal");
+      doc.text(`Batch: ${batchNumber || "N/A"}`, 14, 30);
+      doc.text(`Date: ${new Date().toLocaleDateString()}`, 14, 36);
+      doc.text(`Total Pieces Counted: ${grandTotal.toLocaleString()}`, 14, 42);
+      
+      // Table data
+      const tableData = productList.map(p => {
+        const productName = [
+          p.series_name,
+          p.color_name,
+          p.size_name,
+          p.material_name,
+          p.style_name
+        ].filter(Boolean).join(" - ");
+        
+        return [
+          productName,
+          p.totalCounted.toLocaleString(),
+          p.pass.toLocaleString(),
+          p.fail.toLocaleString(),
+          p.alteration.toLocaleString()
+        ];
+      });
+      
+      // Add table
+      doc.autoTable({
+        startY: 50,
+        head: [["Product", "Total", "Pass", "Fail", "Alteration"]],
+        body: tableData,
+        theme: "striped",
+        headStyles: { fillColor: [37, 99, 235] },
+        styles: { fontSize: 9 }
+      });
+      
+      // Save
+      doc.save(`counted-items-${batchNumber || "report"}.pdf`);
+    } catch (error) {
+      console.error("Export failed:", error);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <Card className="border-2 border-blue-200 shadow-lg bg-blue-50">
       <CardHeader className="bg-blue-600 text-white">
-        <CardTitle className="flex items-center gap-2">
-          <CheckCircle className="w-5 h-5" />
-          Counted Items Summary
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <CheckCircle className="w-5 h-5" />
+            Counted Items Summary
+          </CardTitle>
+          <Button
+            onClick={handleExport}
+            disabled={exporting}
+            size="sm"
+            variant="secondary"
+            className="bg-white text-blue-600 hover:bg-blue-50"
+          >
+            {exporting ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4 mr-2" />
+            )}
+            Export PDF
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="p-4">
         {/* Grand Total */}

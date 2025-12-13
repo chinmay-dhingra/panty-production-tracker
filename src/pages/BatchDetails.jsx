@@ -431,7 +431,7 @@ export default function BatchDetails() {
         {/* Counted Items Summary - Show at top when counting has data */}
         {stageRecords.some(r => r.stage === "counting") && (
           <div className="mb-6">
-            <CountedItemsList stageRecords={stageRecords} />
+            <CountedItemsList stageRecords={stageRecords} batchNumber={batch.batch_number} />
           </div>
         )}
 
