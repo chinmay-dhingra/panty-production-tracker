@@ -1,23 +1,25 @@
-import Dashboard from './pages/Dashboard';
-import NewBatch from './pages/NewBatch';
 import BatchDetails from './pages/BatchDetails';
-import Workers from './pages/Workers';
-import Reports from './pages/Reports';
-import Settings from './pages/Settings';
+import Dashboard from './pages/Dashboard';
+import Home from './pages/Home';
 import Inventory from './pages/Inventory';
 import LabelPrinting from './pages/LabelPrinting';
+import NewBatch from './pages/NewBatch';
+import Reports from './pages/Reports';
+import Settings from './pages/Settings';
+import Workers from './pages/Workers';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
-    "Dashboard": Dashboard,
-    "NewBatch": NewBatch,
     "BatchDetails": BatchDetails,
-    "Workers": Workers,
-    "Reports": Reports,
-    "Settings": Settings,
+    "Dashboard": Dashboard,
+    "Home": Home,
     "Inventory": Inventory,
     "LabelPrinting": LabelPrinting,
+    "NewBatch": NewBatch,
+    "Reports": Reports,
+    "Settings": Settings,
+    "Workers": Workers,
 }
 
 export const pagesConfig = {

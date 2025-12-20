@@ -400,6 +400,13 @@ export default function BatchDetails() {
           </CardContent>
         </Card>
 
+        {/* Counted Items Summary - Only after counting is done */}
+        {stageRecords.some(r => r.stage === "counting") && (
+          <div className="mb-6">
+            <CountedItemsList stageRecords={stageRecords} batchNumber={batch.batch_number} />
+          </div>
+        )}
+
         {/* Stage Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
           {STAGES.map((stage) => {
@@ -427,13 +434,6 @@ export default function BatchDetails() {
             );
           })}
         </div>
-
-        {/* Counted Items Summary - Show at top when counting has data */}
-        {stageRecords.some(r => r.stage === "counting") && (
-          <div className="mb-6">
-            <CountedItemsList stageRecords={stageRecords} batchNumber={batch.batch_number} />
-          </div>
-        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Entry Form */}
