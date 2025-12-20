@@ -15,7 +15,7 @@ import BatchStatusControl from "../components/batch/BatchStatusControl";
 import DeleteBatch from "../components/batch/DeleteBatch";
 import EditBatchNumber from "../components/batch/EditBatchNumber";
 import EditPackagingSKU from "../components/batch/EditPackagingSKU";
-import CountedItemsList from "../components/batch/CountedItemsList";
+import CountedItemsModal from "../components/batch/CountedItemsModal";
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { format } from "date-fns";
@@ -354,6 +354,9 @@ export default function BatchDetails() {
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
+                {stageRecords.some(r => r.stage === "counting") && (
+                  <CountedItemsModal stageRecords={stageRecords} batchNumber={batch.batch_number} />
+                )}
                 <EditBatchNumber 
                   currentNumber={batch.batch_number}
                   onUpdate={(newNumber) => updateBatchMutation.mutate({ batch_number: newNumber })}
@@ -399,13 +402,6 @@ export default function BatchDetails() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Counted Items Summary - Only after counting is done */}
-        {stageRecords.some(r => r.stage === "counting") && (
-          <div className="mb-6">
-            <CountedItemsList stageRecords={stageRecords} batchNumber={batch.batch_number} />
-          </div>
-        )}
 
         {/* Stage Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
