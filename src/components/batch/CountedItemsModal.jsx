@@ -113,7 +113,7 @@ export default function CountedItemsModal({ stageRecords, batchNumber }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2">
+        <Button variant="secondary" className="gap-2 bg-white text-slate-800 hover:bg-slate-100">
           <FileText className="w-4 h-4" />
           View Counted Items ({grandTotal})
         </Button>
