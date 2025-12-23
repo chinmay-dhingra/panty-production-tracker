@@ -166,9 +166,14 @@ export default function BatchDetails() {
       source_products: data.source_products
     });
 
-    // Deduct raw products from inventory
+    // Deduct raw products from inventory (only batch products, not custom)
     try {
       for (const sourceProduct of data.source_products) {
+        // Skip custom products (they don't have IDs and shouldn't affect app inventory)
+        if (sourceProduct.is_custom) {
+          continue;
+        }
+
         const existingInventory = await base44.entities.Inventory.filter({
           series_id: sourceProduct.series_id,
           color_id: sourceProduct.color_id,
