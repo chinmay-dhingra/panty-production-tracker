@@ -266,10 +266,17 @@ export default function BatchDetails() {
       stock[key] = (stock[key] || 0) + (r.qc_pass || 0);
     });
 
-    // Subtract already packaged
+    // Subtract already packaged - use actual source product quantities
     skus.forEach(s => {
-      const key = `${s.series_id}-${s.color_id}-${s.size_id}-${s.material_id || ''}-${s.style_id || ''}`;
-      stock[key] = (stock[key] || 0) - (s.total_pieces || 0);
+      if (s.source_products && s.source_products.length > 0) {
+        s.source_products.forEach(source => {
+          // Skip custom products
+          if (source.is_custom) return;
+          
+          const key = `${source.series_id}-${source.color_id}-${source.size_id}-${source.material_id || ''}-${source.style_id || ''}`;
+          stock[key] = (stock[key] || 0) - (source.quantity || 0);
+        });
+      }
     });
 
     return stock;
