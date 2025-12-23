@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Package, Loader2, Layers, X, Eye } from "lucide-react";
+import { Package, Loader2, Layers, X, Eye, Plus } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -38,6 +38,7 @@ export default function PackagingForm({ workers, products, availableStock, onSub
     sku_size_id: ""
   });
   const [productQuantities, setProductQuantities] = useState({});
+  const [customProducts, setCustomProducts] = useState([]);
 
   const packType = PACK_TYPES.find(p => p.value === formData.pack_type);
   const requiredPieces = packType ? packType.pieces * (parseInt(formData.quantity) || 0) : 0;
@@ -46,7 +47,13 @@ export default function PackagingForm({ workers, products, availableStock, onSub
     return sum + (parseInt(productQuantities[productKey]) || 0);
   }, 0);
 
-  const piecesMismatch = requiredPieces > 0 && totalSelectedPieces !== requiredPieces;
+  const totalCustomPieces = customProducts.reduce((sum, cp) => {
+    return sum + (parseInt(cp.quantity) || 0);
+  }, 0);
+
+  const totalAllPieces = totalSelectedPieces + totalCustomPieces;
+
+  const piecesMismatch = requiredPieces > 0 && totalAllPieces !== requiredPieces;
 
   const toggleProduct = (productKey) => {
     if (formData.selected_products.includes(productKey)) {
@@ -68,6 +75,27 @@ export default function PackagingForm({ workers, products, availableStock, onSub
 
   const updateProductQuantity = (productKey, quantity) => {
     setProductQuantities({ ...productQuantities, [productKey]: quantity });
+  };
+
+  const addCustomProduct = () => {
+    const newId = `custom-${Date.now()}`;
+    setCustomProducts([...customProducts, {
+      id: newId,
+      category: "",
+      color: "",
+      size: "",
+      quantity: ""
+    }]);
+  };
+
+  const updateCustomProduct = (id, field, value) => {
+    setCustomProducts(customProducts.map(cp => 
+      cp.id === id ? { ...cp, [field]: value } : cp
+    ));
+  };
+
+  const removeCustomProduct = (id) => {
+    setCustomProducts(customProducts.filter(cp => cp.id !== id));
   };
 
   const handleSubmit = async (e) => {
@@ -105,6 +133,42 @@ export default function PackagingForm({ workers, products, availableStock, onSub
     // Get first product for series/color/material/style info
     const firstProduct = products[0];
 
+    // Combine batch products and custom products
+    const batchProducts = formData.selected_products.map(productKey => {
+      const p = products.find(prod => 
+        `${prod.series_id}-${prod.color_id}-${prod.size_id}-${prod.material_id || ''}-${prod.style_id || ''}` === productKey
+      );
+      return {
+        series_id: p.series_id,
+        series_name: p.series_name,
+        color_id: p.color_id,
+        color_name: p.color_name,
+        size_id: p.size_id,
+        size_name: p.size_name,
+        material_id: p.material_id || "",
+        material_name: p.material_name || "",
+        style_id: p.style_id || "",
+        style_name: p.style_name || "",
+        quantity: parseInt(productQuantities[productKey]) || 0,
+        is_custom: false
+      };
+    });
+
+    const customProductsData = customProducts.map(cp => ({
+      series_id: "",
+      series_name: cp.category,
+      color_id: "",
+      color_name: cp.color,
+      size_id: "",
+      size_name: cp.size,
+      material_id: "",
+      material_name: "",
+      style_id: "",
+      style_name: "",
+      quantity: parseInt(cp.quantity) || 0,
+      is_custom: true
+    }));
+
     // Submit data with SKU details and source products
     await onSubmit({
       size_id: skuSize.id,
@@ -115,24 +179,7 @@ export default function PackagingForm({ workers, products, availableStock, onSub
       packed_by: formData.packed_by,
       packed_by_name: worker?.name || "",
       sku_code: formData.sku_code.trim(),
-      source_products: formData.selected_products.map(productKey => {
-        const p = products.find(prod => 
-          `${prod.series_id}-${prod.color_id}-${prod.size_id}-${prod.material_id || ''}-${prod.style_id || ''}` === productKey
-        );
-        return {
-          series_id: p.series_id,
-          series_name: p.series_name,
-          color_id: p.color_id,
-          color_name: p.color_name,
-          size_id: p.size_id,
-          size_name: p.size_name,
-          material_id: p.material_id || "",
-          material_name: p.material_name || "",
-          style_id: p.style_id || "",
-          style_name: p.style_name || "",
-          quantity: parseInt(productQuantities[productKey]) || 0
-        };
-      })
+      source_products: [...batchProducts, ...customProductsData]
     });
 
     setFormData({
@@ -144,6 +191,7 @@ export default function PackagingForm({ workers, products, availableStock, onSub
       sku_size_id: ""
     });
     setProductQuantities({});
+    setCustomProducts([]);
     setShowConfirm(false);
   };
 
@@ -158,16 +206,25 @@ export default function PackagingForm({ workers, products, availableStock, onSub
   };
 
   const getSelectedProductsDisplay = () => {
-    return formData.selected_products.map(productKey => {
+    const batchProducts = formData.selected_products.map(productKey => {
       const product = products.find(p => 
         `${p.series_id}-${p.color_id}-${p.size_id}-${p.material_id || ''}-${p.style_id || ''}` === productKey
       );
       const qty = productQuantities[productKey] || 0;
       return {
         name: product ? `${product.series_name} - ${product.color_name} - ${product.size_name}${product.material_name ? ` - ${product.material_name}` : ''}${product.style_name ? ` - ${product.style_name}` : ''}` : "",
-        qty
+        qty,
+        isCustom: false
       };
     });
+
+    const customProductsDisplay = customProducts.map(cp => ({
+      name: `${cp.category} - ${cp.color} - ${cp.size} (External Inventory)`,
+      qty: parseInt(cp.quantity) || 0,
+      isCustom: true
+    }));
+
+    return [...batchProducts, ...customProductsDisplay];
   };
 
   const getSkuSizeDisplay = () => {
@@ -276,42 +333,129 @@ export default function PackagingForm({ workers, products, availableStock, onSub
           <div className="border-2 border-slate-300 rounded-lg p-4 space-y-4">
             <h3 className="font-bold text-slate-900 flex items-center gap-2">
               <Layers className="w-4 h-4" />
-              Raw Products Consumed ({formData.selected_products.length} selected)
+              Raw Products Consumed ({formData.selected_products.length + customProducts.length} selected)
             </h3>
             
-            <div className="border rounded-lg p-3 max-h-64 overflow-y-auto space-y-2 bg-slate-50">
-              {products.map((p) => {
-                const productKey = `${p.series_id}-${p.color_id}-${p.size_id}-${p.material_id || ''}-${p.style_id || ''}`;
-                const available = availableStock[productKey] || 0;
-                const isSelected = formData.selected_products.includes(productKey);
-                return (
-                  <div key={productKey} className="flex items-center gap-2 p-2 bg-white hover:bg-slate-100 rounded border">
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={() => toggleProduct(productKey)}
-                    />
-                    <span className="text-sm flex-1">
-                      {p.series_name} - {p.color_name} - {p.size_name}
-                      {p.material_name && ` - ${p.material_name}`}
-                      {p.style_name && ` - ${p.style_name}`}
-                    </span>
-                    {isSelected && (
-                      <Input
-                        type="number"
-                        min="1"
-                        placeholder="Qty"
-                        value={productQuantities[productKey] || ""}
-                        onChange={(e) => updateProductQuantity(productKey, e.target.value)}
-                        onWheel={(e) => e.target.blur()}
-                        className="w-20 h-8"
+            {/* Batch Products */}
+            <div>
+              <p className="text-xs text-slate-600 font-medium mb-2">From This Batch:</p>
+              <div className="border rounded-lg p-3 max-h-64 overflow-y-auto space-y-2 bg-slate-50">
+                {products.map((p) => {
+                  const productKey = `${p.series_id}-${p.color_id}-${p.size_id}-${p.material_id || ''}-${p.style_id || ''}`;
+                  const available = availableStock[productKey] || 0;
+                  const isSelected = formData.selected_products.includes(productKey);
+                  return (
+                    <div key={productKey} className="flex items-center gap-2 p-2 bg-white hover:bg-slate-100 rounded border">
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => toggleProduct(productKey)}
                       />
-                    )}
-                    <Badge variant="outline" className="text-xs">
-                      {available} avail
-                    </Badge>
-                  </div>
-                );
-              })}
+                      <span className="text-sm flex-1">
+                        {p.series_name} - {p.color_name} - {p.size_name}
+                        {p.material_name && ` - ${p.material_name}`}
+                        {p.style_name && ` - ${p.style_name}`}
+                      </span>
+                      {isSelected && (
+                        <Input
+                          type="number"
+                          min="1"
+                          placeholder="Qty"
+                          value={productQuantities[productKey] || ""}
+                          onChange={(e) => updateProductQuantity(productKey, e.target.value)}
+                          onWheel={(e) => e.target.blur()}
+                          className="w-20 h-8"
+                        />
+                      )}
+                      <Badge variant="outline" className="text-xs">
+                        {available} avail
+                      </Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Custom Products from External Inventory */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-slate-600 font-medium">From External Inventory:</p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={addCustomProduct}
+                  className="h-7 text-xs"
+                >
+                  <Plus className="w-3 h-3 mr-1" />
+                  Add Custom
+                </Button>
+              </div>
+              {customProducts.length > 0 && (
+                <div className="space-y-2">
+                  {customProducts.map((cp) => (
+                    <div key={cp.id} className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-2">
+                      <div className="flex items-center justify-between mb-2">
+                        <Badge className="bg-amber-600 text-xs">External Inventory</Badge>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => removeCustomProduct(cp.id)}
+                          className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-xs">Category</Label>
+                          <Input
+                            type="text"
+                            placeholder="e.g., Panty"
+                            value={cp.category}
+                            onChange={(e) => updateCustomProduct(cp.id, "category", e.target.value)}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Color</Label>
+                          <Input
+                            type="text"
+                            placeholder="e.g., Black"
+                            value={cp.color}
+                            onChange={(e) => updateCustomProduct(cp.id, "color", e.target.value)}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-xs">Size</Label>
+                          <Input
+                            type="text"
+                            placeholder="e.g., M"
+                            value={cp.size}
+                            onChange={(e) => updateCustomProduct(cp.id, "size", e.target.value)}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Quantity</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            placeholder="0"
+                            value={cp.quantity}
+                            onChange={(e) => updateCustomProduct(cp.id, "quantity", e.target.value)}
+                            onWheel={(e) => e.target.blur()}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -322,8 +466,13 @@ export default function PackagingForm({ workers, products, availableStock, onSub
                   Required: {requiredPieces} pieces
                 </p>
                 <p className={`text-lg font-bold ${piecesMismatch ? 'text-red-700' : 'text-emerald-700'}`}>
-                  Selected: {totalSelectedPieces} pieces
+                  Selected: {totalAllPieces} pieces
                 </p>
+                {(totalSelectedPieces > 0 || totalCustomPieces > 0) && (
+                  <p className="text-xs text-slate-600">
+                    (Batch: {totalSelectedPieces} + External: {totalCustomPieces})
+                  </p>
+                )}
                 {piecesMismatch && (
                   <p className="text-xs text-red-600 font-medium">
                     ⚠ Mismatch! Adjust quantities to match required pieces
@@ -355,7 +504,7 @@ export default function PackagingForm({ workers, products, availableStock, onSub
 
           <Button
             type="submit"
-            disabled={isLoading || formData.selected_products.length === 0 || !formData.pack_type || !formData.quantity || !formData.packed_by || piecesMismatch || !formData.sku_code.trim() || !formData.sku_size_id}
+            disabled={isLoading || (formData.selected_products.length === 0 && customProducts.length === 0) || !formData.pack_type || !formData.quantity || !formData.packed_by || piecesMismatch || !formData.sku_code.trim() || !formData.sku_size_id}
             className="w-full bg-violet-600 hover:bg-violet-700"
           >
             <Eye className="w-4 h-4 mr-2" /> Preview & Confirm
@@ -404,8 +553,11 @@ export default function PackagingForm({ workers, products, availableStock, onSub
                 <p className="text-xs text-slate-600 font-bold mb-2 uppercase">Raw Products Consumed:</p>
                 <div className="space-y-1">
                   {getSelectedProductsDisplay().map((item, idx) => (
-                    <div key={idx} className="flex justify-between text-xs bg-white p-2 rounded border">
-                      <span className="text-slate-700">{item.name}</span>
+                    <div key={idx} className={`flex justify-between text-xs p-2 rounded border ${item.isCustom ? 'bg-amber-50 border-amber-200' : 'bg-white'}`}>
+                      <span className="text-slate-700">
+                        {item.name}
+                        {item.isCustom && <Badge className="ml-2 bg-amber-600 text-xs py-0 h-4">External</Badge>}
+                      </span>
                       <span className="font-bold text-slate-900">{item.qty} pcs</span>
                     </div>
                   ))}
