@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { History, User, Calendar, Edit, Trash2, Plus, Search } from "lucide-react";
 import { format } from "date-fns";
-import AdminOnly from "../admin/AdminGuard";
+import { AdminOnly } from "../admin/AdminGuard";
 
 export default function AuditLogViewer() {
   const [search, setSearch] = useState("");
