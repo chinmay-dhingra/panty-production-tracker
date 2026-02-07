@@ -188,18 +188,21 @@ export default function Workers() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-white border shadow-sm">
+          <TabsList className="bg-white border shadow-sm grid grid-cols-5">
             <TabsTrigger value="list" className="gap-2">
-              <Users className="w-4 h-4" /> Workers List
+              <Users className="w-4 h-4" /> Workers
             </TabsTrigger>
             <TabsTrigger value="performance" className="gap-2">
               <BarChart3 className="w-4 h-4" /> Performance
             </TabsTrigger>
             <TabsTrigger value="daily" className="gap-2">
-              <Calendar className="w-4 h-4" /> Daily Tracking
+              <Calendar className="w-4 h-4" /> Daily
             </TabsTrigger>
             <TabsTrigger value="stagewise" className="gap-2">
               <Layers className="w-4 h-4" /> Stage-wise
+            </TabsTrigger>
+            <TabsTrigger value="detailed" className="gap-2">
+              <Calendar className="w-4 h-4" /> Date Tracker
             </TabsTrigger>
           </TabsList>
 
@@ -335,7 +338,17 @@ export default function Workers() {
           <TabsContent value="stagewise">
             <StageWisePerformance workers={workers} stageRecords={stageRecords} skus={skus} />
           </TabsContent>
+
+          {/* Detailed Date Tracking Tab */}
+          <TabsContent value="detailed">
+            <DetailedPerformance />
+          </TabsContent>
         </Tabs>
+        
+        {/* Audit Log - Below Tabs */}
+        <div className="mt-8">
+          <AuditLogViewer />
+        </div>
       </div>
     </div>
   );

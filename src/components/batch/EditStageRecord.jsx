@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,14 +13,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Pencil, Loader2, Trash2 } from "lucide-react";
-import { AdminOnly } from "../admin/AdminGuard";
-
-const stageLabels = {
-  counting: "Counting",
-  cleaning: "Cleaning",
-  stamping: "Stamping",
-  ironing: "Ironing"
-};
 
 export default function EditStageRecord({ record, workers, onUpdate, onDelete, isLoading }) {
   const [open, setOpen] = useState(false);
@@ -33,10 +26,12 @@ export default function EditStageRecord({ record, workers, onUpdate, onDelete, i
     notes: record.notes || ""
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    const user = await base44.auth.me();
     const worker = workers.find(w => w.id === formData.completed_by);
-    onUpdate(record.id, {
+    
+    const newData = {
       stage: formData.stage,
       qc_pass: parseInt(formData.qc_pass) || 0,
       qc_fail: parseInt(formData.qc_fail) || 0,
@@ -45,145 +40,185 @@ export default function EditStageRecord({ record, workers, onUpdate, onDelete, i
       completed_by: formData.completed_by,
       completed_by_name: worker?.name || record.completed_by_name,
       notes: formData.notes
-    });
+    };
+    
+    // Log the change
+    const changedFields = Object.keys(newData).filter(key => 
+      JSON.stringify(newData[key]) !== JSON.stringify(record[key])
+    );
+    
+    if (changedFields.length > 0) {
+      await base44.entities.AuditLog.create({
+        action: "update",
+        entity_type: "StageRecord",
+        entity_id: record.id,
+        entity_name: `${record.stage} - ${record.series_name} ${record.color_name} ${record.size_name}`,
+        old_data: record,
+        new_data: newData,
+        changed_fields: changedFields,
+        user_email: user.email,
+        user_name: user.full_name,
+        batch_id: record.batch_id,
+        batch_number: record.batch_number
+      });
+    }
+    
+    onUpdate(record.id, newData);
     setOpen(false);
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm(`Delete this record? ID: ${record.id.slice(0, 8)}`)) return;
+    
+    const user = await base44.auth.me();
+    
+    // Log the deletion
+    await base44.entities.AuditLog.create({
+      action: "delete",
+      entity_type: "StageRecord",
+      entity_id: record.id,
+      entity_name: `${record.stage} - ${record.series_name} ${record.color_name} ${record.size_name}`,
+      old_data: record,
+      new_data: {},
+      changed_fields: ["deleted"],
+      user_email: user.email,
+      user_name: user.full_name,
+      batch_id: record.batch_id,
+      batch_number: record.batch_number
+    });
+    
+    onDelete(record.id);
+  };
+
   return (
-    <AdminOnly>
-      <div className="flex gap-1">
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button size="icon" variant="ghost" className="h-7 w-7">
-              <Pencil className="w-3 h-3" />
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Record</DialogTitle>
-              <p className="text-xs text-slate-500">ID: {record.id}</p>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="flex gap-1">
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <Button size="icon" variant="ghost" className="h-7 w-7">
+            <Pencil className="w-3 h-3" />
+          </Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Record</DialogTitle>
+            <p className="text-xs text-slate-500">ID: {record.id}</p>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label>Stage</Label>
+              <Select
+                value={formData.stage}
+                onValueChange={(value) => setFormData({ ...formData, stage: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="counting">Counting</SelectItem>
+                  <SelectItem value="cleaning">Cleaning</SelectItem>
+                  <SelectItem value="stamping">Stamping</SelectItem>
+                  <SelectItem value="ironing">Ironing</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
               <div>
-                <Label>Stage</Label>
-                <Select
-                  value={formData.stage}
-                  onValueChange={(value) => setFormData({ ...formData, stage: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="counting">Counting</SelectItem>
-                    <SelectItem value="cleaning">Cleaning</SelectItem>
-                    <SelectItem value="stamping">Stamping</SelectItem>
-                    <SelectItem value="ironing">Ironing</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <Label className="text-xs">Pass</Label>
-                  <Input
-                    type="number"
-                    value={formData.qc_pass}
-                    onChange={(e) => setFormData({ ...formData, qc_pass: e.target.value })}
-                    onWheel={(e) => e.target.blur()}
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">Fail</Label>
-                  <Input
-                    type="number"
-                    value={formData.qc_fail}
-                    onChange={(e) => setFormData({ ...formData, qc_fail: e.target.value })}
-                    onWheel={(e) => e.target.blur()}
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">Alteration</Label>
-                  <Input
-                    type="number"
-                    value={formData.alteration}
-                    onChange={(e) => setFormData({ ...formData, alteration: e.target.value })}
-                    onWheel={(e) => e.target.blur()}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label>Worker</Label>
-                <Select
-                  value={formData.completed_by}
-                  onValueChange={(value) => setFormData({ ...formData, completed_by: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {workers.map((w) => (
-                      <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {(formData.qc_fail > 0 || formData.alteration > 0) && (
-                <div>
-                  <Label>Defect Reason</Label>
-                  <Select
-                    value={formData.defect_reason}
-                    onValueChange={(value) => setFormData({ ...formData, defect_reason: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select reason" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="stitching_error">Stitching Error</SelectItem>
-                      <SelectItem value="fabric_defect">Fabric Defect</SelectItem>
-                      <SelectItem value="color_issue">Color Issue</SelectItem>
-                      <SelectItem value="size_mismatch">Size Mismatch</SelectItem>
-                      <SelectItem value="stain">Stain/Dirt</SelectItem>
-                      <SelectItem value="tear">Tear/Hole</SelectItem>
-                      <SelectItem value="elastic_issue">Elastic Issue</SelectItem>
-                      <SelectItem value="print_defect">Print Defect</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              <div>
-                <Label>Notes</Label>
-                <Textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                <Label className="text-xs">Pass</Label>
+                <Input
+                  type="number"
+                  value={formData.qc_pass}
+                  onChange={(e) => setFormData({ ...formData, qc_pass: e.target.value })}
+                  onWheel={(e) => e.target.blur()}
                 />
               </div>
+              <div>
+                <Label className="text-xs">Fail</Label>
+                <Input
+                  type="number"
+                  value={formData.qc_fail}
+                  onChange={(e) => setFormData({ ...formData, qc_fail: e.target.value })}
+                  onWheel={(e) => e.target.blur()}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Alteration</Label>
+                <Input
+                  type="number"
+                  value={formData.alteration}
+                  onChange={(e) => setFormData({ ...formData, alteration: e.target.value })}
+                  onWheel={(e) => e.target.blur()}
+                />
+              </div>
+            </div>
 
-              <Button type="submit" disabled={isLoading} className="w-full">
-                {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Update Record
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+            <div>
+              <Label>Worker</Label>
+              <Select
+                value={formData.completed_by}
+                onValueChange={(value) => setFormData({ ...formData, completed_by: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {workers.map((w) => (
+                    <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-        <Button
-          size="icon"
-          variant="ghost"
-          className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
-          onClick={() => {
-            if (window.confirm(`Delete this record? ID: ${record.id.slice(0, 8)}`)) {
-              onDelete(record.id);
-            }
-          }}
-          disabled={isLoading}
-        >
-          {isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-        </Button>
-      </div>
-    </AdminOnly>
+            {(formData.qc_fail > 0 || formData.alteration > 0) && (
+              <div>
+                <Label>Defect Reason</Label>
+                <Select
+                  value={formData.defect_reason}
+                  onValueChange={(value) => setFormData({ ...formData, defect_reason: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select reason" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="stitching_error">Stitching Error</SelectItem>
+                    <SelectItem value="fabric_defect">Fabric Defect</SelectItem>
+                    <SelectItem value="color_issue">Color Issue</SelectItem>
+                    <SelectItem value="size_mismatch">Size Mismatch</SelectItem>
+                    <SelectItem value="stain">Stain/Dirt</SelectItem>
+                    <SelectItem value="tear">Tear/Hole</SelectItem>
+                    <SelectItem value="elastic_issue">Elastic Issue</SelectItem>
+                    <SelectItem value="print_defect">Print Defect</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div>
+              <Label>Notes</Label>
+              <Textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              />
+            </div>
+
+            <Button type="submit" disabled={isLoading} className="w-full">
+              {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Update Record
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Button
+        size="icon"
+        variant="ghost"
+        className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
+        onClick={handleDelete}
+        disabled={isLoading}
+      >
+        {isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+      </Button>
+    </div>
   );
 }
