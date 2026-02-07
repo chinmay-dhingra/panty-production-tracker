@@ -23,6 +23,8 @@ import {
 import WorkerPerformance from "../components/workers/WorkerPerformance";
 import DailyPerformance from "../components/workers/DailyPerformance";
 import StageWisePerformance from "../components/workers/StageWisePerformance";
+import DetailedPerformance from "../components/workers/DetailedPerformance";
+import AuditLogViewer from "../components/reports/AuditLogViewer";
 
 
 
