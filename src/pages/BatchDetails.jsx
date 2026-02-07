@@ -16,6 +16,7 @@ import DeleteBatch from "../components/batch/DeleteBatch";
 import EditBatchNumber from "../components/batch/EditBatchNumber";
 import EditPackagingSKU from "../components/batch/EditPackagingSKU";
 import CountedItemsModal from "../components/batch/CountedItemsModal";
+import EditBatchProducts from "../components/batch/EditBatchProducts";
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { format } from "date-fns";
@@ -369,6 +370,11 @@ export default function BatchDetails() {
                 {stageRecords.some(r => r.stage === "counting") && (
                   <CountedItemsModal stageRecords={stageRecords} batchNumber={batch.batch_number} />
                 )}
+                <EditBatchProducts
+                  currentProducts={batch.expected_products || []}
+                  onUpdate={(data) => updateBatchMutation.mutate(data)}
+                  isLoading={updateBatchMutation.isPending}
+                />
                 <EditBatchNumber 
                   currentNumber={batch.batch_number}
                   onUpdate={(newNumber) => updateBatchMutation.mutate({ batch_number: newNumber })}
