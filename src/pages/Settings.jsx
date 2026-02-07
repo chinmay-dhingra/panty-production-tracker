@@ -7,12 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Layers, Palette, Ruler, Scissors, Shirt, Plus, Loader2, Edit2, Trash2, Save, X } from "lucide-react";
+import { Layers, Palette, Ruler, Scissors, Shirt, Plus, Loader2, Edit2, Trash2, Save, X, Shield } from "lucide-react";
 import { AdminOnly } from "../components/admin/AdminGuard";
 
 export default function Settings() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("series");
+  const [activeTab, setActiveTab] = useState("permissions");
 
   // Fetch all product attributes
   const { data: series = [] } = useQuery({
@@ -50,6 +50,9 @@ export default function Settings() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="bg-white border mb-6">
+            <TabsTrigger value="permissions">
+              <Shield className="w-4 h-4 mr-2" /> Permissions
+            </TabsTrigger>
             <TabsTrigger value="series">
               <Layers className="w-4 h-4 mr-2" /> Series
             </TabsTrigger>
@@ -66,6 +69,47 @@ export default function Settings() {
               <Shirt className="w-4 h-4 mr-2" /> Styles
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="permissions">
+            <Card className="border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-slate-500" />
+                  Staff Permissions
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-emerald-900 mb-2">✓ Currently Enabled for All Staff</h3>
+                  <ul className="space-y-1 text-sm text-emerald-700">
+                    <li>• Edit stage records (counting, cleaning, stamping, ironing)</li>
+                    <li>• Delete stage records</li>
+                    <li>• Edit packaging SKU entries</li>
+                    <li>• Delete packaging SKU entries</li>
+                    <li>• View audit logs of all changes</li>
+                  </ul>
+                </div>
+
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-slate-900 mb-2">ℹ️ Admin Only Permissions</h3>
+                  <ul className="space-y-1 text-sm text-slate-600">
+                    <li>• Edit batch numbers</li>
+                    <li>• Change batch status</li>
+                    <li>• Delete entire batches</li>
+                    <li>• Add/remove products from batches</li>
+                    <li>• Manage product attributes (series, colors, sizes, etc.)</li>
+                  </ul>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-blue-900 mb-2">📝 Note</h3>
+                  <p className="text-sm text-blue-700">
+                    All edits and deletions are automatically logged in the audit system. View the audit log in the Workers page under "Date Tracker" tab.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="series">
             <AttributeManager 
