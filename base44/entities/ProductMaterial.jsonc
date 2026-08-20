@@ -1,0 +1,21 @@
+{
+  "name": "ProductMaterial",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Material name e.g. Cotton, Polyester, Lace"
+    },
+    "code": {
+      "type": "string",
+      "description": "Short code for the material"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

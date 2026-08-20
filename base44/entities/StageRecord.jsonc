@@ -1,0 +1,86 @@
+{
+  "name": "StageRecord",
+  "type": "object",
+  "properties": {
+    "batch_id": {
+      "type": "string",
+      "description": "Reference to the batch"
+    },
+    "batch_number": {
+      "type": "string"
+    },
+    "stage": {
+      "type": "string",
+      "enum": [
+        "counting",
+        "cleaning",
+        "stamping",
+        "ironing",
+        "packaging"
+      ]
+    },
+    "series_id": {
+      "type": "string"
+    },
+    "series_name": {
+      "type": "string"
+    },
+    "color_id": {
+      "type": "string"
+    },
+    "color_name": {
+      "type": "string"
+    },
+    "size_id": {
+      "type": "string"
+    },
+    "size_name": {
+      "type": "string"
+    },
+    "material_id": {
+      "type": "string"
+    },
+    "material_name": {
+      "type": "string"
+    },
+    "style_id": {
+      "type": "string"
+    },
+    "style_name": {
+      "type": "string"
+    },
+    "qc_pass": {
+      "type": "number",
+      "default": 0
+    },
+    "qc_fail": {
+      "type": "number",
+      "default": 0
+    },
+    "alteration": {
+      "type": "number",
+      "default": 0
+    },
+    "defect_reason": {
+      "type": "string",
+      "description": "Reason for QC fail or alteration"
+    },
+    "completed_by": {
+      "type": "string"
+    },
+    "completed_by_name": {
+      "type": "string"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "batch_id",
+    "stage"
+  ]
+}

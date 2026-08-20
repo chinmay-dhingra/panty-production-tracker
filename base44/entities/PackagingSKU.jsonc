@@ -1,0 +1,114 @@
+{
+  "name": "PackagingSKU",
+  "type": "object",
+  "properties": {
+    "batch_id": {
+      "type": "string"
+    },
+    "batch_number": {
+      "type": "string"
+    },
+    "series_id": {
+      "type": "string"
+    },
+    "series_name": {
+      "type": "string"
+    },
+    "color_id": {
+      "type": "string"
+    },
+    "color_name": {
+      "type": "string"
+    },
+    "size_id": {
+      "type": "string"
+    },
+    "size_name": {
+      "type": "string"
+    },
+    "material_id": {
+      "type": "string"
+    },
+    "material_name": {
+      "type": "string"
+    },
+    "style_id": {
+      "type": "string"
+    },
+    "style_name": {
+      "type": "string"
+    },
+    "pack_type": {
+      "type": "string",
+      "enum": [
+        "single",
+        "2_pack",
+        "3_pack",
+        "4_pack",
+        "6_pack",
+        "8_pack"
+      ]
+    },
+    "quantity": {
+      "type": "number"
+    },
+    "total_pieces": {
+      "type": "number"
+    },
+    "packed_by": {
+      "type": "string"
+    },
+    "packed_by_name": {
+      "type": "string"
+    },
+    "sku_code": {
+      "type": "string"
+    },
+    "source_products": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "series_id": {
+            "type": "string"
+          },
+          "series_name": {
+            "type": "string"
+          },
+          "color_id": {
+            "type": "string"
+          },
+          "color_name": {
+            "type": "string"
+          },
+          "size_id": {
+            "type": "string"
+          },
+          "size_name": {
+            "type": "string"
+          },
+          "material_id": {
+            "type": "string"
+          },
+          "material_name": {
+            "type": "string"
+          },
+          "style_id": {
+            "type": "string"
+          },
+          "style_name": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "batch_id",
+    "pack_type",
+    "quantity"
+  ]
+}

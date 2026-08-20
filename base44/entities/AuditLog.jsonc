@@ -1,0 +1,68 @@
+{
+  "name": "AuditLog",
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "create",
+        "update",
+        "delete"
+      ],
+      "description": "Type of action performed"
+    },
+    "entity_type": {
+      "type": "string",
+      "description": "Type of entity modified (e.g., StageRecord, PackagingSKU, Batch)"
+    },
+    "entity_id": {
+      "type": "string",
+      "description": "ID of the entity that was modified"
+    },
+    "entity_name": {
+      "type": "string",
+      "description": "Name/description of the entity"
+    },
+    "old_data": {
+      "type": "object",
+      "description": "Previous data before change"
+    },
+    "new_data": {
+      "type": "object",
+      "description": "New data after change"
+    },
+    "changed_fields": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of fields that were changed"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email of user who made the change"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Name of user who made the change"
+    },
+    "batch_id": {
+      "type": "string",
+      "description": "Associated batch ID if applicable"
+    },
+    "batch_number": {
+      "type": "string",
+      "description": "Associated batch number if applicable"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes about the change"
+    }
+  },
+  "required": [
+    "action",
+    "entity_type",
+    "entity_id",
+    "user_email"
+  ]
+}

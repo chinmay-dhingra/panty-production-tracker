@@ -1,0 +1,21 @@
+{
+  "name": "ProductStyle",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Style name e.g. Bikini, Brief, Thong, Boyshort"
+    },
+    "code": {
+      "type": "string",
+      "description": "Short code for the style"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

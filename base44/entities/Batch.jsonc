@@ -1,0 +1,65 @@
+{
+  "name": "Batch",
+  "type": "object",
+  "properties": {
+    "batch_number": {
+      "type": "string",
+      "description": "Auto-generated batch number"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "in_progress",
+        "completed",
+        "on_hold",
+        "archived"
+      ],
+      "default": "in_progress"
+    },
+    "expected_products": {
+      "type": "array",
+      "description": "Products expected in this batch",
+      "items": {
+        "type": "object",
+        "properties": {
+          "series_id": {
+            "type": "string"
+          },
+          "series_name": {
+            "type": "string"
+          },
+          "color_id": {
+            "type": "string"
+          },
+          "color_name": {
+            "type": "string"
+          },
+          "size_id": {
+            "type": "string"
+          },
+          "size_name": {
+            "type": "string"
+          },
+          "material_id": {
+            "type": "string"
+          },
+          "material_name": {
+            "type": "string"
+          },
+          "style_id": {
+            "type": "string"
+          },
+          "style_name": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "batch_number"
+  ]
+}

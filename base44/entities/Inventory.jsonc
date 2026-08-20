@@ -1,0 +1,54 @@
+{
+  "name": "Inventory",
+  "type": "object",
+  "properties": {
+    "series_id": {
+      "type": "string"
+    },
+    "series_name": {
+      "type": "string"
+    },
+    "color_id": {
+      "type": "string"
+    },
+    "color_name": {
+      "type": "string"
+    },
+    "size_id": {
+      "type": "string"
+    },
+    "size_name": {
+      "type": "string"
+    },
+    "material_id": {
+      "type": "string"
+    },
+    "material_name": {
+      "type": "string"
+    },
+    "style_id": {
+      "type": "string"
+    },
+    "style_name": {
+      "type": "string"
+    },
+    "stock_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Current stock level"
+    },
+    "reorder_point": {
+      "type": "number",
+      "default": 0,
+      "description": "Minimum stock level before alert"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "series_id",
+    "color_id",
+    "size_id"
+  ]
+}

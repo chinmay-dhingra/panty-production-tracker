@@ -1,0 +1,25 @@
+{
+  "name": "Worker",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Worker's full name"
+    },
+    "employee_id": {
+      "type": "string",
+      "description": "Unique employee identifier"
+    },
+    "role": {
+      "type": "string",
+      "description": "General role description (e.g., Production Worker, QC Specialist)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name"
+  ]
+}
