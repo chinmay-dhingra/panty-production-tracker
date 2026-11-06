@@ -16,6 +16,21 @@
       ],
       "default": "in_progress"
     },
+    "vendor_id": {
+      "type": "string",
+      "description": "Fabricator / supplier this batch came from"
+    },
+    "vendor_name": {
+      "type": "string"
+    },
+    "vendor_type": {
+      "type": "string",
+      "enum": [
+        "fabricator",
+        "supplier",
+        "vendor"
+      ]
+    },
     "expected_products": {
       "type": "array",
       "description": "Products expected in this batch",

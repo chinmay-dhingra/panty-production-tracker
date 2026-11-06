@@ -61,9 +61,39 @@
       "type": "number",
       "default": 0
     },
+    "qc_fail_reasons": {
+      "type": "array",
+      "description": "Breakdown of QC failed pieces by reason; counts must add up to qc_fail",
+      "items": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string"
+          },
+          "count": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "alteration_reasons": {
+      "type": "array",
+      "description": "Breakdown of altered pieces by reason; counts must add up to alteration",
+      "items": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string"
+          },
+          "count": {
+            "type": "number"
+          }
+        }
+      }
+    },
     "defect_reason": {
       "type": "string",
-      "description": "Reason for QC fail or alteration"
+      "description": "Legacy single reason summary"
     },
     "completed_by": {
       "type": "string"

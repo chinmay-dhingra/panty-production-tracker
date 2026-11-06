@@ -1,0 +1,38 @@
+{
+  "name": "BatchNote",
+  "type": "object",
+  "properties": {
+    "batch_id": {
+      "type": "string"
+    },
+    "batch_number": {
+      "type": "string"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note or comment text"
+    },
+    "note_type": {
+      "type": "string",
+      "enum": [
+        "note",
+        "comment"
+      ],
+      "enumColors": [
+        "blue",
+        "gray"
+      ],
+      "default": "note"
+    },
+    "author_email": {
+      "type": "string"
+    },
+    "author_name": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "batch_id",
+    "note"
+  ]
+}
