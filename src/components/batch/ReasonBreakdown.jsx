@@ -59,6 +59,12 @@ export default function ReasonBreakdown({ title, total, rows = [], onChange, opt
   const allocated = rowsTotal(rows);
   const remaining = total - allocated;
 
+  // Keep legacy/custom reasons visible even if they are not in the standard list
+  const extraOptions = rows
+    .filter(row => row.reason && !options.some(o => o.value === row.reason))
+    .map(row => ({ value: row.reason, label: reasonLabel(row.reason, options) }));
+  const allOptions = [...options, ...extraOptions];
+
   const updateRow = (index, patch) =>
     onChange(rows.map((row, i) => (i === index ? { ...row, ...patch } : row)));
   const addRow = () => onChange([...rows, { reason: "", count: "" }]);
@@ -96,7 +102,7 @@ export default function ReasonBreakdown({ title, total, rows = [], onChange, opt
                 <SelectValue placeholder="Select reason" />
               </SelectTrigger>
               <SelectContent>
-                {options.map((option) => (
+                {allOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>

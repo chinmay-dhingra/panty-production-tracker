@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   ArrowLeft, Package, Loader2, CheckCircle2, XCircle, Wrench,
-  User, Calendar, FileText, Clock, Layers, Palette, Ruler, Copy
+  User, Calendar, FileText, Clock, Layers, Palette, Ruler, Copy, Factory
 } from "lucide-react";
 import ExportBatchPDF from "../components/batch/ExportBatchPDF";
 import EditStageRecord from "../components/batch/EditStageRecord";
@@ -22,6 +22,9 @@ import { createPageUrl } from "@/utils";
 import { format } from "date-fns";
 import StageForm from "../components/batch/StageForm";
 import PackagingForm from "../components/batch/PackagingForm";
+import BatchNotes from "../components/batch/BatchNotes";
+import BatchVendor from "../components/batch/BatchVendor";
+import { ALTERATION_REASONS, QC_FAIL_REASONS, reasonLabel } from "../components/batch/ReasonBreakdown";
 
 const STAGES = ["counting", "cleaning", "stamping", "ironing", "packaging"];
 
@@ -70,6 +73,11 @@ export default function BatchDetails() {
   const { data: workers = [] } = useQuery({
     queryKey: ["workers"],
     queryFn: () => base44.entities.Worker.filter({ is_active: true })
+  });
+
+  const { data: vendors = [] } = useQuery({
+    queryKey: ["vendors"],
+    queryFn: () => base44.entities.Vendor.list("name")
   });
 
   const { data: sizes = [] } = useQuery({
@@ -122,6 +130,9 @@ export default function BatchDetails() {
       const skuPromises = skus.map(s => base44.entities.PackagingSKU.delete(s.id));
       await Promise.all(skuPromises);
       
+      // Delete batch notes and comments
+      await base44.entities.BatchNote.deleteMany({ batch_id: batchId });
+
       // Delete batch
       await base44.entities.Batch.delete(batchId);
     },
@@ -358,6 +369,14 @@ export default function BatchDetails() {
                     </span>
                     <span>•</span>
                     <span>{products.length} product variants</span>
+                    {batch.vendor_name && (
+                      <>
+                        <span>•</span>
+                        <span className="flex items-center gap-1">
+                          <Factory className="w-3 h-3" /> {batch.vendor_name}
+                        </span>
+                      </>
+                    )}
                     <span>•</span>
                     <span className="flex items-center gap-1">
                       <Copy className="w-3 h-3" />
@@ -593,6 +612,27 @@ export default function BatchDetails() {
                                   <Wrench className="w-3 h-3" /> {record.alteration}
                                 </span>
                               </div>
+                              {(record.alteration_reasons?.length > 0 ||
+                                record.qc_fail_reasons?.length > 0) && (
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                  {record.alteration_reasons?.map((r, i) => (
+                                    <span
+                                      key={`alt-${i}`}
+                                      className="text-xs bg-amber-50 text-amber-700 border border-amber-200 rounded px-2 py-0.5"
+                                    >
+                                      {reasonLabel(r.reason, ALTERATION_REASONS)} · {r.count}
+                                    </span>
+                                  ))}
+                                  {record.qc_fail_reasons?.map((r, i) => (
+                                    <span
+                                      key={`fail-${i}`}
+                                      className="text-xs bg-red-50 text-red-700 border border-red-200 rounded px-2 py-0.5"
+                                    >
+                                      {reasonLabel(r.reason, QC_FAIL_REASONS)} · {r.count}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                             <div className="flex items-start gap-2">
                               <div className="text-right text-xs text-slate-400">
@@ -717,20 +757,31 @@ export default function BatchDetails() {
               </Card>
             )}
 
-            {/* Batch Notes */}
+            {/* Fabricator / Vendor */}
+            <BatchVendor
+              batch={batch}
+              vendors={vendors}
+              onChange={(data) => updateBatchMutation.mutate(data)}
+              isLoading={updateBatchMutation.isPending}
+            />
+
+            {/* Notes captured when the batch was created */}
             {batch.notes && (
               <Card className="border-0 shadow-lg">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <FileText className="w-5 h-5 text-slate-500" />
-                    Notes
+                    Batch Notes
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-slate-600">{batch.notes}</p>
+                  <p className="text-slate-600 whitespace-pre-wrap">{batch.notes}</p>
                 </CardContent>
               </Card>
             )}
+
+            {/* Notes & comments added over time */}
+            <BatchNotes batchId={batchId} batchNumber={batch.batch_number} />
           </div>
         </div>
       </div>

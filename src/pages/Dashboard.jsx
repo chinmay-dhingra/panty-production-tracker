@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, Layers, CheckCircle, AlertTriangle, Search, Plus, Loader2, Archive } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Package, Layers, CheckCircle, AlertTriangle, Search, Plus, Loader2, Archive, Factory } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { format } from "date-fns";
@@ -16,6 +17,7 @@ import BatchCardEnhanced from "../components/batch/BatchCardEnhanced";
 export default function Dashboard() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
+  const [vendorFilter, setVendorFilter] = useState("all");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -83,13 +85,17 @@ export default function Dashboard() {
     item => item.reorder_point > 0 && item.stock_count <= item.reorder_point
   ).length;
 
+  // Vendor options for the filter
+  const vendorNames = [...new Set(batches.map(b => b.vendor_name).filter(Boolean))].sort();
+
   // Filter batches
   const filteredBatches = batches.filter(batch => {
     const matchesSearch = batch.batch_number?.toLowerCase().includes(search.toLowerCase());
     const matchesFilter = filter === "all" 
       ? batch.status !== "archived" 
       : batch.status === filter;
-    return matchesSearch && matchesFilter;
+    const matchesVendor = vendorFilter === "all" || batch.vendor_name === vendorFilter;
+    return matchesSearch && matchesFilter && matchesVendor;
   });
 
   return (
@@ -172,6 +178,22 @@ export default function Dashboard() {
               className="pl-10 bg-white border-slate-200"
             />
           </div>
+          <Select value={vendorFilter} onValueChange={setVendorFilter}>
+            <SelectTrigger className="w-full md:w-56 bg-white border-slate-200">
+              <span className="flex items-center gap-2 text-sm">
+                <Factory className="w-4 h-4 text-slate-400" />
+                <SelectValue placeholder="All fabricators" />
+              </span>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All fabricators</SelectItem>
+              {vendorNames.map((name) => (
+                <SelectItem key={name} value={name}>
+                  {name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Tabs value={filter} onValueChange={setFilter}>
             <TabsList className="bg-white border border-slate-200">
               <TabsTrigger value="all">All</TabsTrigger>

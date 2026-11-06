@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { 
   Package, ArrowRight, Clock, Layers, Eye, EyeOff, 
-  Copy, Archive, CheckCircle2, Circle
+  Copy, Archive, CheckCircle2, Circle, Factory
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -70,6 +70,12 @@ export default function BatchCardEnhanced({
                 <Layers className="w-3 h-3" />
                 {products.length} product variants
               </p>
+              {batch.vendor_name && (
+                <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                  <Factory className="w-3 h-3" />
+                  {batch.vendor_name}
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${statusColors[batch.status]}`} />

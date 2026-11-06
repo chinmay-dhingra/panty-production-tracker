@@ -11,11 +11,17 @@ import {
   AlertDialogContent,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
+import ReasonBreakdown, {
+  ALTERATION_REASONS,
+  QC_FAIL_REASONS,
+  reasonLabel,
+  rowsTotal,
+  rowsComplete
+} from "@/components/batch/ReasonBreakdown";
 
 const stageLabels = {
   counting: "Counting",
@@ -25,32 +31,69 @@ const stageLabels = {
   packaging: "Packaging"
 };
 
+const emptyForm = {
+  selected_product: "",
+  qc_pass: "",
+  qc_fail: "",
+  alteration: "",
+  completed_by: "",
+  notes: ""
+};
+
 export default function StageForm({ stage, workers, products, onSubmit, isLoading }) {
   const [showConfirm, setShowConfirm] = useState(false);
-  const [formData, setFormData] = useState({
-    selected_product: "",
-    qc_pass: "",
-    qc_fail: "",
-    alteration: "",
-    defect_reason: "",
-    completed_by: "",
-    notes: ""
-  });
+  const [formData, setFormData] = useState(emptyForm);
+  const [alterationRows, setAlterationRows] = useState([]);
+  const [failRows, setFailRows] = useState([]);
+
+  const failTotal = parseInt(formData.qc_fail) || 0;
+  const alterationTotal = parseInt(formData.alteration) || 0;
+  const passTotal = parseInt(formData.qc_pass) || 0;
+  const totalPcs = passTotal + failTotal + alterationTotal;
+
+  const cleanRows = (rows) =>
+    rows
+      .filter(r => r.reason && (parseInt(r.count) || 0) > 0)
+      .map(r => ({ reason: r.reason, count: parseInt(r.count) }));
+
+  const failsDone = failTotal === 0 || (rowsTotal(failRows) === failTotal && rowsComplete(failRows));
+  const alterationsDone =
+    alterationTotal === 0 || (rowsTotal(alterationRows) === alterationTotal && rowsComplete(alterationRows));
+
+  const canSubmit =
+    !!formData.selected_product && !!formData.completed_by && totalPcs > 0 && failsDone && alterationsDone;
+
+  const handleCountChange = (field, value, setRows) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if ((parseInt(value) || 0) > 0) {
+      setRows(prev => (prev.length === 0 ? [{ reason: "", count: "" }] : prev));
+    }
+  };
+
+  const buildSummary = () => {
+    const parts = [
+      ...cleanRows(alterationRows).map(
+        r => `Alteration: ${reasonLabel(r.reason, ALTERATION_REASONS)} x${r.count}`
+      ),
+      ...cleanRows(failRows).map(r => `Fail: ${reasonLabel(r.reason, QC_FAIL_REASONS)} x${r.count}`)
+    ];
+    return parts.join("; ") || null;
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!canSubmit) return;
     setShowConfirm(true);
   };
 
   const confirmSubmit = () => {
-    const selectedProduct = products.find(p => 
-      `${p.series_id}-${p.color_id}-${p.size_id}-${p.material_id || ''}-${p.style_id || ''}` === formData.selected_product
+    const selectedProduct = products.find(
+      p => `${p.series_id}-${p.color_id}-${p.size_id}-${p.material_id || ''}-${p.style_id || ''}` === formData.selected_product
     );
-
     if (!selectedProduct) return;
 
     const worker = workers.find(w => w.id === formData.completed_by);
-    
+
     onSubmit({
       series_id: selectedProduct.series_id,
       series_name: selectedProduct.series_name,
@@ -62,31 +105,26 @@ export default function StageForm({ stage, workers, products, onSubmit, isLoadin
       material_name: selectedProduct.material_name || "",
       style_id: selectedProduct.style_id || "",
       style_name: selectedProduct.style_name || "",
-      qc_pass: parseInt(formData.qc_pass) || 0,
-      qc_fail: parseInt(formData.qc_fail) || 0,
-      alteration: parseInt(formData.alteration) || 0,
-      defect_reason: formData.defect_reason || null,
+      qc_pass: passTotal,
+      qc_fail: failTotal,
+      alteration: alterationTotal,
+      qc_fail_reasons: cleanRows(failRows),
+      alteration_reasons: cleanRows(alterationRows),
+      defect_reason: buildSummary(),
       completed_by: formData.completed_by,
       completed_by_name: worker?.name || "",
       notes: formData.notes
     });
 
-    // Reset form
-    setFormData({
-      selected_product: "",
-      qc_pass: "",
-      qc_fail: "",
-      alteration: "",
-      defect_reason: "",
-      completed_by: "",
-      notes: ""
-    });
+    setFormData(emptyForm);
+    setAlterationRows([]);
+    setFailRows([]);
     setShowConfirm(false);
   };
 
   const getProductDisplay = () => {
-    const product = products.find(p => 
-      `${p.series_id}-${p.color_id}-${p.size_id}-${p.material_id || ''}-${p.style_id || ''}` === formData.selected_product
+    const product = products.find(
+      p => `${p.series_id}-${p.color_id}-${p.size_id}-${p.material_id || ''}-${p.style_id || ''}` === formData.selected_product
     );
     if (!product) return "";
     return `${product.series_name} - ${product.color_name} - ${product.size_name}${product.material_name ? ` - ${product.material_name}` : ''}${product.style_name ? ` - ${product.style_name}` : ''}`;
@@ -96,10 +134,6 @@ export default function StageForm({ stage, workers, products, onSubmit, isLoadin
     const worker = workers.find(w => w.id === formData.completed_by);
     return worker ? worker.name : "";
   };
-
-  const totalPcs = (parseInt(formData.qc_pass) || 0) + 
-                   (parseInt(formData.qc_fail) || 0) + 
-                   (parseInt(formData.alteration) || 0);
 
   return (
     <Card className="border-0 shadow-lg">
@@ -113,7 +147,7 @@ export default function StageForm({ stage, workers, products, onSubmit, isLoadin
       </CardHeader>
       <CardContent className="p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Product Selection - Single dropdown with exact combinations */}
+          {/* Product Selection */}
           <div className="space-y-2">
             <Label className="flex items-center gap-1">
               <Layers className="w-3 h-3" /> Select Product
@@ -129,10 +163,7 @@ export default function StageForm({ stage, workers, products, onSubmit, isLoadin
                 {products.map((p) => {
                   const key = `${p.series_id}-${p.color_id}-${p.size_id}-${p.material_id || ''}-${p.style_id || ''}`;
                   return (
-                    <SelectItem 
-                      key={key} 
-                      value={key}
-                    >
+                    <SelectItem key={key} value={key}>
                       {p.series_name} - {p.color_name} - {p.size_name}
                       {p.material_name && ` - ${p.material_name}`}
                       {p.style_name && ` - ${p.style_name}`}
@@ -168,7 +199,7 @@ export default function StageForm({ stage, workers, products, onSubmit, isLoadin
                 min="0"
                 placeholder="0"
                 value={formData.qc_fail}
-                onChange={(e) => setFormData({ ...formData, qc_fail: e.target.value })}
+                onChange={(e) => handleCountChange("qc_fail", e.target.value, setFailRows)}
                 onWheel={(e) => e.target.blur()}
                 className="border-red-200 focus:border-red-500"
               />
@@ -182,7 +213,7 @@ export default function StageForm({ stage, workers, products, onSubmit, isLoadin
                 min="0"
                 placeholder="0"
                 value={formData.alteration}
-                onChange={(e) => setFormData({ ...formData, alteration: e.target.value })}
+                onChange={(e) => handleCountChange("alteration", e.target.value, setAlterationRows)}
                 onWheel={(e) => e.target.blur()}
                 className="border-amber-200 focus:border-amber-500"
               />
@@ -194,6 +225,26 @@ export default function StageForm({ stage, workers, products, onSubmit, isLoadin
               <span className="text-blue-700 font-medium">Total Pieces: {totalPcs}</span>
             </div>
           )}
+
+          {/* Alteration reasons */}
+          <ReasonBreakdown
+            title="Alteration reasons"
+            total={alterationTotal}
+            rows={alterationRows}
+            onChange={setAlterationRows}
+            options={ALTERATION_REASONS}
+            tone="amber"
+          />
+
+          {/* QC fail reasons */}
+          <ReasonBreakdown
+            title="QC fail reasons"
+            total={failTotal}
+            rows={failRows}
+            onChange={setFailRows}
+            options={QC_FAIL_REASONS}
+            tone="red"
+          />
 
           {/* Worker */}
           <div className="space-y-2">
@@ -215,32 +266,6 @@ export default function StageForm({ stage, workers, products, onSubmit, isLoadin
             </Select>
           </div>
 
-          {/* Defect Reason */}
-          {(parseInt(formData.qc_fail) > 0 || parseInt(formData.alteration) > 0) && (
-            <div className="space-y-2">
-              <Label>Defect Reason</Label>
-              <Select
-                value={formData.defect_reason || ""}
-                onValueChange={(value) => setFormData({ ...formData, defect_reason: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select reason" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="stitching_error">Stitching Error</SelectItem>
-                  <SelectItem value="fabric_defect">Fabric Defect</SelectItem>
-                  <SelectItem value="color_issue">Color Issue</SelectItem>
-                  <SelectItem value="size_mismatch">Size Mismatch</SelectItem>
-                  <SelectItem value="stain">Stain/Dirt</SelectItem>
-                  <SelectItem value="tear">Tear/Hole</SelectItem>
-                  <SelectItem value="elastic_issue">Elastic Issue</SelectItem>
-                  <SelectItem value="print_defect">Print Defect</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
           {/* Notes */}
           <div className="space-y-2">
             <Label>Notes (Optional)</Label>
@@ -251,9 +276,15 @@ export default function StageForm({ stage, workers, products, onSubmit, isLoadin
             />
           </div>
 
+          {!failsDone || !alterationsDone ? (
+            <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
+              Allocate every QC failed and altered piece to a reason before saving this entry.
+            </p>
+          ) : null}
+
           <Button
             type="submit"
-            disabled={isLoading || !formData.selected_product || !formData.completed_by || totalPcs === 0}
+            disabled={isLoading || !canSubmit}
             className="w-full bg-slate-800 hover:bg-slate-700"
           >
             <Eye className="w-4 h-4 mr-2" /> Preview & Confirm
@@ -276,31 +307,48 @@ export default function StageForm({ stage, workers, products, onSubmit, isLoadin
               <div className="grid grid-cols-3 gap-2">
                 <div className="bg-emerald-50 p-2 rounded text-center border border-emerald-200">
                   <p className="text-xs text-emerald-700">Pass</p>
-                  <p className="text-lg font-bold text-emerald-700">{formData.qc_pass || 0}</p>
+                  <p className="text-lg font-bold text-emerald-700">{passTotal}</p>
                 </div>
                 <div className="bg-red-50 p-2 rounded text-center border border-red-200">
                   <p className="text-xs text-red-700">Fail</p>
-                  <p className="text-lg font-bold text-red-700">{formData.qc_fail || 0}</p>
+                  <p className="text-lg font-bold text-red-700">{failTotal}</p>
                 </div>
                 <div className="bg-amber-50 p-2 rounded text-center border border-amber-200">
                   <p className="text-xs text-amber-700">Alt</p>
-                  <p className="text-lg font-bold text-amber-700">{formData.alteration || 0}</p>
+                  <p className="text-lg font-bold text-amber-700">{alterationTotal}</p>
                 </div>
               </div>
               <div className="bg-blue-100 p-2 rounded text-center border border-blue-200">
                 <p className="text-xs text-blue-700">Total</p>
                 <p className="text-xl font-bold text-blue-700">{totalPcs} pcs</p>
               </div>
+
+              {cleanRows(alterationRows).length > 0 && (
+                <div className="bg-amber-50 p-2 rounded border border-amber-200">
+                  <p className="text-xs text-amber-700 mb-1">Alteration reasons</p>
+                  {cleanRows(alterationRows).map((row, i) => (
+                    <p key={i} className="text-sm text-slate-700">
+                      {reasonLabel(row.reason, ALTERATION_REASONS)} — {row.count} pcs
+                    </p>
+                  ))}
+                </div>
+              )}
+
+              {cleanRows(failRows).length > 0 && (
+                <div className="bg-red-50 p-2 rounded border border-red-200">
+                  <p className="text-xs text-red-700 mb-1">QC fail reasons</p>
+                  {cleanRows(failRows).map((row, i) => (
+                    <p key={i} className="text-sm text-slate-700">
+                      {reasonLabel(row.reason, QC_FAIL_REASONS)} — {row.count} pcs
+                    </p>
+                  ))}
+                </div>
+              )}
+
               <div className="bg-slate-100 p-2 rounded">
                 <p className="text-xs text-slate-600">Worker</p>
                 <p className="font-semibold text-sm">{getWorkerDisplay()}</p>
               </div>
-              {formData.defect_reason && (
-                <div className="bg-orange-50 p-2 rounded border border-orange-200">
-                  <p className="text-xs text-orange-700">Defect Reason</p>
-                  <p className="font-semibold text-sm">{formData.defect_reason.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
-                </div>
-              )}
               {formData.notes && (
                 <div className="bg-slate-100 p-2 rounded">
                   <p className="text-xs text-slate-600">Notes</p>

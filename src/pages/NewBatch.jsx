@@ -9,7 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Package, Loader2, Sparkles, Plus, X, Layers, Palette, Ruler, Scissors, Shirt } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, Package, Loader2, Sparkles, Plus, X, Layers, Palette, Ruler, Scissors, Shirt, Factory } from "lucide-react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 
@@ -47,6 +48,11 @@ export default function NewBatch() {
     queryFn: () => base44.entities.ProductStyle.filter({ is_active: true })
   });
 
+  const { data: vendors = [] } = useQuery({
+    queryKey: ["vendors"],
+    queryFn: () => base44.entities.Vendor.filter({ is_active: true })
+  });
+
   const generateBatchNumber = () => {
     const today = format(new Date(), "yyyyMMdd");
     const todayBatches = batches.filter(b => b.batch_number?.startsWith(`BTH-${today}`));
@@ -56,6 +62,7 @@ export default function NewBatch() {
 
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [notes, setNotes] = useState("");
+  const [vendorId, setVendorId] = useState("");
 
   // Selection state
   const [selectedSeries, setSelectedSeries] = useState([]);
@@ -134,10 +141,15 @@ export default function NewBatch() {
       return;
     }
 
+    const vendor = vendors.find(v => v.id === vendorId);
+
     createMutation.mutate({
       batch_number: generateBatchNumber(),
       status: "in_progress",
       expected_products: selectedProducts,
+      vendor_id: vendor?.id || "",
+      vendor_name: vendor?.name || "",
+      vendor_type: vendor?.type || "",
       notes
     });
   };
@@ -369,6 +381,31 @@ export default function NewBatch() {
                     ))}
                   </div>
                 )}
+              </div>
+
+              {/* Vendor / Fabricator */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Factory className="w-4 h-4 text-slate-500" /> Fabricator / Supplier (Optional)
+                </Label>
+                <Select value={vendorId} onValueChange={setVendorId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select who this batch came from" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vendors.length === 0 ? (
+                      <SelectItem value="none" disabled>
+                        No vendors yet — add one under Vendors
+                      </SelectItem>
+                    ) : (
+                      vendors.map((vendor) => (
+                        <SelectItem key={vendor.id} value={vendor.id}>
+                          {vendor.name} ({vendor.type})
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Notes */}
